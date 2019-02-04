@@ -36,6 +36,6 @@ class Dungeon:
         exits = ["NORTH", "EAST", "SOUTH", "WEST"]
         exit = ""
         for i in exits:
-            if self.room[self.currentRoom].hasExit(i):
+            if self.room[self.currentRoom].hasExit(i.lower()):
                 exit += i + " "
-        print (exit)
+        print(exit)

@@ -8,16 +8,16 @@ class Room:
         self.west = west
 
     def HasExit(self, direction):
-        if(direction.lower() == 'north') and (self.north != ""):
+        if(direction == 'north') and (self.north != ""):
             return True
 
-        if(direction.lower() == 'east') and (self.east != ""):
+        if(direction == 'east') and (self.east != ""):
             return True
 
-        if(direction.lower() == 'south') and (self.south != ""):
+        if(direction == 'south') and (self.south != ""):
             return True
 
-        if(direction.lower() == 'west') and (self.west != ""):
+        if(direction == 'west') and (self.west != ""):
             return True
 
         return False
