@@ -36,6 +36,27 @@ class Dungeon:
         exits = ["NORTH", "EAST", "SOUTH", "WEST"]
         exit = ""
         for i in exits:
-            if self.room[self.currentRoom].hasExit(i.lower()):
+            if self.room[self.currentRoom].HasExit(i.lower()):
                 exit += i + " "
         print(exit)
+
+    def isValidMove(self, direction):
+        return self.room[self.currentRoom].HasExit(direction)
+
+    def Move(self, direction):
+        if self.isValidMove(direction):
+            if direction == "north":
+                self.currentRoom = self.room[self.currentRoom].north
+                return
+
+            if direction == "east":
+                self.currentRoom = self.room[self.currentRoom].east
+                return
+
+            if direction == "south":
+                self.currentRoom = self.room[self.currentRoom].south
+                return
+
+            if direction == "west":
+                self.currentRoom = self.room[self.currentRoom].west
+                return

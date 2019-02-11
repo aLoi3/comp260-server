@@ -1,5 +1,5 @@
 from Dungeon import Dungeon
-from Commands import Commands
+from Commands import Command
 
 
 
@@ -10,7 +10,7 @@ class SUD:
 
     def Run(self):
         self.myDungeon = Dungeon()
-        self.commands = Commands()
+        self.commands = Command()
         self.myDungeon.Init()
 
         while True:
@@ -28,17 +28,18 @@ class SUD:
         if user_input[0].lower() == 'help':
             print("HELP!!")
         elif user_input[0].lower() == 'go':
-            if self.commands.isValidMove(user_input[1].lower()):
-                self.commands.Move(user_input[1].lower())
+            if self.myDungeon.isValidMove(user_input[1].lower()):
+                self.myDungeon.Move(user_input[1].lower())
             else:
                 self.handleBadInput()
         else:
             self.handleBadInput()
 
-def handleBadInput(self):
-    print("\nERROR")
-    print("Press any key to continue")
-    input()
+    def handleBadInput(self):
+        print("\nERROR")
+        print("Press any key to continue")
+        input()
+
 
 if __name__ == '__main__':
     sud = SUD()
