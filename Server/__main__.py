@@ -17,7 +17,7 @@ def receive_thread(client_socket):
     while receive_is_running:
         try:
             message_queue.put((client_socket, client_socket.recv(4096).decode("utf-8")))
-            print("Adding to queue")
+            print("Adding to queue")  # delete later ?
         except socket.error:
             print("Client lost")
             receive_is_running = False
@@ -46,6 +46,7 @@ if __name__ == '__main__':
     my_socket.listen(5)
 
     my_dungeon = Dungeon.Dungeon()
+    my_dungeon.Init()
     my_player = Player.Player(my_dungeon, '1-entrance')
     input_manager = Input.Input()
 

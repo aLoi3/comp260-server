@@ -46,6 +46,7 @@ def main():
                 my_socket.connect(("127.0.0.1", 8222))
                 is_connected = True
                 print("Connected to Server")
+                print("Press Enter to Start")
             except socket.error:
                 is_connected = False
                 print("Couldn't connect to Server, trying again in 2 seconds")
