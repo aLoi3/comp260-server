@@ -4,6 +4,7 @@ import time
 from queue import *
 
 import Input
+import Dungeon
 import Player
 
 clients = {}
@@ -29,7 +30,7 @@ def accept_clients(server_socket):
         print("Added client. Socket info: " + str(new_client[0]))
         clients_lock.acquire()
         clients[new_client[0]] = 0
-        my_receive_thread = threading.Thread(target=receive_thread, args=(new_client[0],))
+        my_receive_thread = threading.Thread(target=receive_thread, args=(new_client[0], ))
         my_receive_thread.start()
         input_manager.all_connected_clients = clients
         clients_lock.release()
@@ -63,7 +64,7 @@ if __name__ == '__main__':
                 if client_reply is not None:
                     client_and_message[0].send(client_reply.encode())
 
-            except:
+            except socket.error:
                 lost_clients.append(client_and_message[0])
                 print("Client lost")
 

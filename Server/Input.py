@@ -1,6 +1,3 @@
-from Dungeon import Dungeon
-
-
 class Input:
     def __init__(self):
         self.current_input: str = ''
@@ -15,18 +12,35 @@ class Input:
         self.current_input = current_input
         my_dungeon = dungeon
         my_player = player
-        #self.my_dungeon.DisplayCurrentRoom()
+        my_dungeon.DisplayCurrentRoom()
 
-        split_input = current_input.split(' ', 1).lower()
+        split_input = current_input.split(' ', 1)
         command = split_input[0].lower()
-        direction = split_input[1].lower()
+        if len(split_input) >= 2:
+            direction = split_input[1].lower()
+        else:
+            direction = ''
 
         if command == 'help':
             self.print_help()
 
         elif command == 'go':
-            if self.my_dungeon.isValidMove(direction):
-                self.my_dungeon.Move(direction)
+            if my_dungeon.room[my_dungeon.currentRoom].HasExit(direction):
+                if direction == 'north':
+                    my_dungeon.currentRoom = my_dungeon.room[my_dungeon.currentRoom].north
+                    return
+
+                if direction == 'east':
+                    my_dungeon.currentRoom = my_dungeon.room[my_dungeon.currentRoom].east
+                    return
+
+                if direction == 'south':
+                    my_dungeon.currentRoom = my_dungeon.room[my_dungeon.currentRoom].south
+                    return
+
+                if direction == 'west':
+                    my_dungeon.currentRoom = my_dungeon.room[my_dungeon.currentRoom].west
+                    return
             else:
                 self.handleBadInput()
         else:
@@ -35,8 +49,7 @@ class Input:
             message += ''.join(split_input)
             for client in self.all_connected_client:
                 client.send(message.encode())
-            #return
-
+            return
 
     def handleBadInput(self):
         print("Bad Input \n")
