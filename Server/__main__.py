@@ -1,85 +1,75 @@
 import socket
 import threading
 import time
+from queue import *
 
 import Input
-import Dungeon
 import Player
 
 clients = {}
 clients_lock = threading.Lock()
+message_queue = Queue()
+
+
+def receive_thread(client_socket):
+    receive_is_running = True
+    while receive_is_running:
+        try:
+            message_queue.put((client_socket, client_socket.recv(4096).decode("utf-8")))
+            print("Adding to queue")
+        except socket.error:
+            print("Client lost")
+            receive_is_running = False
 
 
 def accept_clients(server_socket):
-    while isRunning:
+    while is_running:
         print("Looking for new clients")
         new_client = server_socket.accept()
         print("Added client. Socket info: " + str(new_client[0]))
         clients_lock.acquire()
         clients[new_client[0]] = 0
+        my_receive_thread = threading.Thread(target=receive_thread, args=(new_client[0],))
+        my_receive_thread.start()
+        input_manager.all_connected_clients = clients
         clients_lock.release()
 
 
 if __name__ == '__main__':
 
-    isRunning = True
-    isConnected = False
+    is_running = True
+    is_connected = False
 
-    mySocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    mySocket.bind(("127.0.0.1", 8222))
-    mySocket.listen(5)
+    my_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    my_socket.bind(("127.0.0.1", 8222))
+    my_socket.listen(5)
 
     my_dungeon = Dungeon.Dungeon()
     my_player = Player.Player(my_dungeon, '1-entrance')
     input_manager = Input.Input()
 
-    my_accept_thread = threading.Thread(target=accept_clients, args=(mySocket, ))
+    my_accept_thread = threading.Thread(target=accept_clients, args=(my_socket, ))
     my_accept_thread.start()
 
-    while isRunning == True:
+    while is_running is True:
         lost_clients = []
+        client_and_message = ''
 
         clients_lock.acquire()
-        for client in clients:
+        while message_queue.qsize() > 0:
             try:
-                data = client.recv(4096)
-                print("Input from client: " + str(client) + ": " + data.decode("utf-8"))
-                client_reply = input_manager.player_input()
-                client.send(client_reply.encode())
-            except socket.error:
-                lost_clients.append(client)
-                print("Client lost ...")
+                client_and_message = message_queue.get()
+                client_reply = input_manager.player_input(client_and_message[1], my_player, my_dungeon)
+                if client_reply is not None:
+                    client_and_message[0].send(client_reply.encode())
+
+            except:
+                lost_clients.append(client_and_message[0])
+                print("Client lost")
 
         for client in lost_clients:
             clients.pop(client)
+            input_manager.all_connected_clients = client
 
         clients_lock.release()
-
         time.sleep(0.5)
-
-        #if isConnected == False:
-        #    print("Waiting for client ...")
-        #    client = mySocket.accept()
-#
-        #try:
-        #    data = client[0].recv(4096)
-        #    print(data.decode("utf-8"))
-        #    seqID = 0
-        #    isConnected = True
-        #    print("Client connected")
-        #except socket.error:
-        #    isConnected = False
-#
-        #while isConnected == True:
-        #    testString = str(seqID) + ": " + time.ctime()
-#
-        #    try:
-        #        print("Sending test string: " + testString)
-        #        client[0].send(testString.encode())
-        #        seqID += 1
-        #        time.sleep(0.5)
-        #    except socket.error:
-        #        isConnected = False
-        #        client = None
-        #        print("Client lost")
-#

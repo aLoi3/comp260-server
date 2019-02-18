@@ -5,6 +5,7 @@ class Dungeon:
     def __init__(self):
         self.currentRoom = 0
         self.room = {}
+        self.players = {}
 
     def Init(self):
         print("You've decided to go on an adventure. \n "
