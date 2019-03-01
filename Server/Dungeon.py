@@ -16,10 +16,10 @@ class Dungeon:
                                        "You've decided to go on an adventure. \n "
                                        "Luckily, first dungeon was nearby, which wasn't looking as dangerous as others were talking about. \n "
                                        "So, there you are, at the entrance to a pyramid-like dungeon! \n "
-                                       " There is a sign reading - DO NOT ENTER - What's your next move? \n ",
+                                       "There is a sign reading - DO NOT ENTER - What's your next move? \n ",
                                        north="1-hall")
         self.room["1-hall"] = Room("1-hall",
-                                    "You've entered the dungeon. but suddenly, as soon as you've entered it, the doors behind you closed. \n What is you next move? \n ",
+                                   "You've entered the dungeon. but suddenly, as soon as you've entered it, the doors behind you closed. \n What is you next move? \n ",
                                    north="1-northHallway")
         self.room["1-northHallway"] = Room("1-northHallway",
                                            "In front of you is a narrow corridor going only forwards \n ",
@@ -35,6 +35,7 @@ class Dungeon:
 
         # print(self.room[self.currentRoom].description)
 
+    # Displays possible exits and description of the room when player enters one
     def DisplayCurrentRoom(self, player):
 
         print("Exits \n")
@@ -47,9 +48,11 @@ class Dungeon:
 
         return Fore.CYAN + self.room[player.current_room].description + Fore.BLUE + "\n Exits: \n " + exit + "\n" + Fore.RESET
 
+    # Checks if the direction is valid
     def isValidMove(self, direction):
         return self.room[self.currentRoom].HasExit(direction)
 
+    # Move to the room in player's chosen direction
     def Move(self, direction):
         if self.isValidMove(direction):
             if direction == "north":

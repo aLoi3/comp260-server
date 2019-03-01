@@ -6,4 +6,4 @@ class Player:
         self.player_id: int = 0
         self.inventory = {}
         self.equipped = {}
-        self.player_name = 'aLoi3'
+        self.player_name = 'A Stranger'
