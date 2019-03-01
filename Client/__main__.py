@@ -24,7 +24,6 @@ def receive_thread(server_socket):
         if is_connected:
             try:
                 message_queue.put(server_socket.recv(4096).decode("utf-8"))
-                # print("Adding to queue")
             except socket.error:
                 my_socket = None
                 is_connected = False
@@ -59,7 +58,7 @@ def main():
         while is_connected:
             try:
                 input_manager.player_input(my_socket)
-                time.sleep(0.5)
+                time.sleep(1)
             except socket.error:
                 print("Server lost. Trying to reconnect")
                 is_connected = False
