@@ -22,9 +22,10 @@ class Input:
 
     # Outputs help commands
     def print_help(self):
-        return " Possible commands:" \
-               " \n go <direction> \n Directions: NORTH, SOUTH, EAST, WEST" \
-               " \n name <your_name>: Change your name to the one you want" \
+        return " I will be your guide through this worst-ever-made dungeon... That's what I think, at least. And please, read me as if it was a spooky ghost, deal? BOOooOOoo \n" \
+               " Nevertheless, these are your possible commands: \n" \
+               " go <direction> \n Directions: NORTH, SOUTH, EAST, WEST \n" \
+               " name <your_name>: Change your name to the one you want" \
                " NOTE: If you are not using any of the commands, it will be a normal text and everyone in the room will hear it. \n" \
 
 

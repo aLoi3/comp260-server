@@ -68,9 +68,9 @@ class Client:
         self.my_receive_thread = threading.Thread(target=self.receive_thread)
         self.my_receive_thread.start()
 
-        self.my_window.show()
+        self.my_window.window_draw()
 
-        sys.exit(self.app.exec_())
+        #sys.exit(self.app.exec_())
 
 
 if __name__ == '__main__':

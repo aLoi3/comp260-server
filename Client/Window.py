@@ -1,5 +1,6 @@
 from PyQt5 import QtWidgets, uic, QtCore
 from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QApplication
 from queue import *
 import sys
 import os
@@ -20,12 +21,12 @@ class Window(QtWidgets.QMainWindow, Ui_MainWindow):
         self.message_queue = Queue()
 
         self.timer = QtCore.QTimer()
-        self.timer.timeout.connect(self.timerEvent)
+        self.timer.connect(self.timerEvent)
         self.timer.start(100)
         self.client = ''
 
     def window_draw(self):
-        app = QtWidgets.QApplication(sys.argv)
+        app = QApplication(sys.argv)
         window = Window()
         window.show()
         sys.exit(app.exec_())
@@ -53,9 +54,9 @@ class Window(QtWidgets.QMainWindow, Ui_MainWindow):
         self.client.my_socket = None
 
         if self.client.my_receive_thread is not None:
-            self.client.my_receive_thread.join()
+            self.client.my_receive_thread.join
         if self.client.my_connection_thread is not None:
-            self.client.my_connection_thread.join()
+            self.client.my_connection_thread.join
 
     def set_client(self, new_client):
         self.client = new_client
