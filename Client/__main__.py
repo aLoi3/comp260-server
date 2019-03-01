@@ -5,6 +5,10 @@ import threading
 import time
 import Input
 
+from colorama import init
+from colorama import Fore
+init(autoreset=True)
+
 message_queue = Queue()
 is_connected = False
 my_socket = None
@@ -20,7 +24,7 @@ def receive_thread(server_socket):
         if is_connected:
             try:
                 message_queue.put(server_socket.recv(4096).decode("utf-8"))
-                print("Adding to queue")
+                # print("Adding to queue")
             except socket.error:
                 my_socket = None
                 is_connected = False
@@ -46,7 +50,7 @@ def main():
                 my_socket.connect(("127.0.0.1", 8222))
                 is_connected = True
                 print("Connected to Server")
-                print("Press Enter to Start")
+                print(Fore.BLUE + "Type 'Start' to Begin Your Journey!" + Fore.RESET)
             except socket.error:
                 is_connected = False
                 print("Couldn't connect to Server, trying again in 2 seconds")

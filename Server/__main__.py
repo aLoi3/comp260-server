@@ -29,7 +29,7 @@ def accept_clients(server_socket):
         new_client = server_socket.accept()
         print("Added client. Socket info: " + str(new_client[0]))
         clients_lock.acquire()
-        clients[new_client[0]] = 0
+        clients[new_client[0]] = Player.Player(my_dungeon, '1-entrance')
         my_receive_thread = threading.Thread(target=receive_thread, args=(new_client[0], ))
         my_receive_thread.start()
         input_manager.all_connected_clients = clients
@@ -47,7 +47,7 @@ if __name__ == '__main__':
 
     my_dungeon = Dungeon.Dungeon()
     my_dungeon.Init()
-    my_player = Player.Player(my_dungeon, '1-entrance')
+    # my_player = Player.Player(my_dungeon, '1-entrance')
     input_manager = Input.Input()
 
     my_accept_thread = threading.Thread(target=accept_clients, args=(my_socket, ))
@@ -61,7 +61,7 @@ if __name__ == '__main__':
         while message_queue.qsize() > 0:
             try:
                 client_and_message = message_queue.get()
-                client_reply = input_manager.player_input(client_and_message[1], my_player, my_dungeon)
+                client_reply = input_manager.player_input(client_and_message[1], client_and_message[0], my_dungeon)
                 if client_reply is not None:
                     client_and_message[0].send(client_reply.encode())
 
@@ -71,7 +71,7 @@ if __name__ == '__main__':
 
         for client in lost_clients:
             clients.pop(client)
-            input_manager.all_connected_clients = client
+            input_manager.all_connected_clients = clients
 
         clients_lock.release()
         time.sleep(0.5)

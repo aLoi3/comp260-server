@@ -5,5 +5,5 @@ class Input:
 
     def player_input(self, my_socket):
         current_input = input('> ')
-        self.lowered_input = current_input.lower()
+        self.lowered_input = current_input
         my_socket.send(self.lowered_input.encode())
