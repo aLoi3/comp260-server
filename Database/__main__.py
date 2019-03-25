@@ -1,68 +1,70 @@
 import sqlite3
 
-db = sqlite3.connect(':memory:')
-#db = sqlite3.connect('data/mydb')
 
-cursor = db.cursor()
-name1 = 'Andres'
-phone1 = '3366858'
-email1 = 'user@example.com'
-password1 = '12345'
+class Database:
+    def __init__(self):
+        self.isRunning = True
+        self.database = None
+        self.cursor = None
 
-name2 = 'John'
-phone2 = '5557241'
-email2 = 'johndoe@example.com'
-password2 = 'abcdef'
+    def create_database(self):
+        try:
+            self.database = sqlite3.connect('dataTest.sql')
+            self.cursor = self.database.cursor()
+            self.cursor.execute('CREATE TABLE table_phonenumbers (name varchar(20), number varchar(20) ) ')
+        except:
+            print('Failed to create Database \n')
 
-cursor.execute('''
-    CREATE TABLE users(id INTEGER PRIMARY KEY, name TEXT,
-                       phone TEXT, email TEXT unique, password TEXT)
-''')
+    def add_data(self):
+        name = input('Name ')
+        number = input('Number ')
 
-cursor.execute('''INSERT INTO users(name, phone, email, password)
-                  VALUES(?,?,?,?)''', (name1, phone1, email1, password1))
-print('First user inserted' + '\n')
+        try:
+            self.cursor.execute("SELECT * FROM table_phonenumbers WHERE name == '" + name + "'")
+            rows = self.cursor.fetchall()
 
-cursor.execute('''INSERT INTO users(name, phone, email, password)
-                  VALUES(?,?,?,?)''', (name2, phone2, email2, password2))
-print('Second user inserted' + '\n')
+            if len(rows) == 0:
+                self.cursor.execute('insert into table_phonenumbers(name, number) values(?,?)', (name, number))
+                self.database.commit()
 
-db.commit()
+        except:
+            print('Failed to add to Database \n')
 
-cursor.execute('''SELECT name, email, phone, password FROM users''')
-user1 = cursor.fetchone()
-print(user1[0] + '\n')
-all_rows = cursor.fetchall()
-for row in all_rows:
-    print('{0} : {1}, {2}, {3}'.format(row[0], row[1], row[2], row[3]) + '\n')
+    def display_database(self):
+        try:
+            rows = self.cursor.execute("SELECT * FROM " + "table_phonenumbers" + " order by name asc")
 
-user_id = 1
-cursor.execute('''SELECT name, email, phone, password FROM users WHERE id=?''', (user_id,))
-user = cursor.fetchone()
-print(user)
+            for row in rows:
+                print(row[0] + ' ' + row[1] + '\n')
 
-newphone = '3113093164'
-userid = 1
-cursor.execute('''UPDATE users SET phone = ? WHERE id = ? ''', (newphone, userid))
-db.commit()
+        except:
+            print('Failed to display Database \n')
 
-cursor.execute('''SELECT name, email, phone, password FROM users WHERE id = ? ''', (userid,))
-userchanged = cursor.fetchone()
-print(userchanged)
+    def exit_application(self):
+        self.isRunning = False
 
-delete_userid = 2
-cursor.execute('''DELETE FROM users WHERE  id = ? ''', (delete_userid,))
-db.commit()
-# Roll back the change
-# db.rollback()
+    def run(self):
+        while self.isRunning is True:
+            print('Type 1 to Create Database')
+            print('Type 2 to Add your name and number to Database')
+            print('Type 3 to Display everything')
+            print('Type x to exit the application \n')
 
-cursor.execute('''SELECT name, email, phone, password FROM users WHERE id = ? ''', (delete_userid,))
-userchanged = cursor.fetchone()
-print(userchanged)
+            key = input("> ")
 
-id = cursor.lastrowid
-print('Last row id: %d' % id + '\n')
+            if key is '1':
+                self.create_database()
 
-print(user1[2])
+            if key is '2':
+                self.add_data()
 
-db.close()
+            if key is '3':
+                self.display_database()
+
+            if key is 'x':
+                self.exit_application()
+
+
+if __name__ == '__main__':
+    database = Database()
+    database.run()
