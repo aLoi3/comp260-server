@@ -1,1 +1,5 @@
 * Find a way to display messages right away (MUD)
+* Fix client server relationship (glitch Adrian was talking about (was also in the Viva))
+* Send encrypted input to the server and decrypt it there?
+- How can I get the same key that's generated in client's input?
+- Should it be in the client's input ?

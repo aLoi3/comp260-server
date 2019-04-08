@@ -33,19 +33,32 @@ class Database:
         username = input('Username: ')
         password = input('Password: ')
 
-        simple_hash = hashlib.md5()
-        simple_hash.update(bytes(password, 'utf-8'))
-        print("Simple password hash: " + simple_hash.hexdigest())
-
         salt = hashlib.md5()
         salt.update(bytes('salty mcsalt-salt', 'utf-8'))
-        print("Salt: " + salt.hexdigest())
+        #print("Salt: " + salt.hexdigest())
 
-        s = hashlib.md5()
-        s.update(bytes(password, 'utf-8') + salt.digest())
-        print("Salted password hash: " + s.hexdigest())
+        saltvalue = salt.hexdigest()
 
-        self.fernet_crypto(s.hexdigest())
+        simple_hash = hashlib.md5()
+        simple_hash.update(bytes(password+saltvalue, 'utf-8'))
+        saltedPassword =  simple_hash.hexdigest()
+        #print("Simple password hash: " +saltedPassword)
+
+        print("user:" + username + " salt: " + saltvalue + " saltedpassword: "+saltedPassword)
+
+        username2 = input('Username: ')
+        password2 = input('Password: ')
+
+        newHash = hashlib.md5()
+        newHash.update(bytes(password2 + saltvalue, 'utf-8'))
+
+        print(newHash.hexdigest())
+
+        #s = hashlib.md5()
+        #s.update(bytes(password, 'utf-8') + salt.digest())
+        #print("Salted password hash: " + s.hexdigest())
+
+        #encrypted_password = self.fernet_crypto(s.hexdigest())
 
         try:
             cmd = "SELECT * FROM users WHERE username == '" + username + "'"
@@ -54,7 +67,7 @@ class Database:
 
             if len(rows) == 0:
                 cmd = 'INSERT INTO users(username, password) values(?,?)'
-                self.cursor.execute(cmd, (username, s.hexdigest()))
+                self.cursor.execute(cmd, (username, saltedPassword))
                 self.database.commit()
 
         except:
@@ -95,15 +108,18 @@ class Database:
         except:
             print('Failed to delete the user')
 
-    def fernet_crypto(self, password):
+    def fernet_crypto(self):
         key = Fernet.generate_key()
         cipher_suite = Fernet(key)
-        cipher_text = cipher_suite.encrypt(bytes(password.encode('utf-8')))
+        cipher_text = cipher_suite.encrypt(b"password")
         plain_text = cipher_suite.decrypt(cipher_text)
 
+        print(key)
+        print(cipher_suite)
         print(cipher_text)
         print(plain_text)
-        print(password)
+
+        return cipher_text
 
     #def cryptodome_crypto(self):
     #    data = b"secret"
@@ -126,6 +142,7 @@ class Database:
     #        print("Incorrect decryption")
 
     def exit_application(self):
+        self.database.close()
         self.isRunning = False
 
     def run(self):
@@ -135,7 +152,6 @@ class Database:
             print('Type 3 to Display everything')
             print('Type 4 to Find User')
             print('Type 5 to Delete the user')
-            print('Type 6 to Test Fernet cryptography')
            # print('Type 7 to Test Cryptodome cryptography')
             print('Type x to exit the application \n')
 

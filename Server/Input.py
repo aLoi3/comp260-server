@@ -40,6 +40,7 @@ class Input:
         self.current_client = client
         self.database = sqlite3.connect(database)
         self.cursor = self.database.cursor()
+        self.salt_value = None
         my_dungeon = dungeon
         my_player = self.all_connected_clients.get(client)
 
@@ -117,8 +118,8 @@ class Input:
             client.send(message_output.encode())
 
     def register(self):
-        cmd = 'CREATE TABLE IF NOT EXISTS users (username varchar(20), password varchar(20) )'
-        self.cursor.execute(cmd)
+        #cmd = 'CREATE TABLE IF NOT EXISTS users (username varchar(20), password varchar(20) )'
+        #self.cursor.execute(cmd)
 
         username = input("Username: ")
         password = input("Password: ")
@@ -127,7 +128,7 @@ class Input:
         salted_password = self.password_salt(password)
 
         # Now add a spoon of encryption to top it off
-        encrypted_password = self.fernet_crypto(salted_password)
+        # encrypted_password = self.fernet_crypto(salted_password)
 
         # Voila - we get extremely uncrackable password... * Just believe *
         try:
@@ -137,26 +138,24 @@ class Input:
 
             if len(rows) == 0:
                 cmd = 'INSERT INTO users(username, password) values(?,?)'
-                self.cursor.execute(cmd, (username, encrypted_password))
+                self.cursor.execute(cmd, (username, salted_password))
                 self.database.commit()
 
         except Exception:
             print("Failed to Add to Database \n")
 
     def password_salt(self, password):
-        simple_hash = hashlib.md5()
-        simple_hash.update(bytes(password, 'utf-8'))
-        print("Simple password hash: " + simple_hash.hexdigest())
-
         salt = hashlib.md5()
         salt.update(bytes('salty mcsalt-salt', 'utf-8'))
-        print("Salt: " + salt.hexdigest())
 
-        s = hashlib.md5()
-        s.update(bytes(password, 'utf-8') + salt.digest())
-        print("Salted password hash: " + s.hexdigest())
+        self.salt_value = salt.hexdigest()
 
-        return s.hexdigest()
+        simple_hash = hashlib.md5()
+        simple_hash.update(bytes(password + self.salt_value, 'utf-8'))
+
+        salted_password = simple_hash.hexdigest()
+
+        return salted_password
 
     def fernet_crypto(self, password):
         key = Fernet.generate_key()
@@ -169,6 +168,11 @@ class Input:
     def login(self):
         username = input("Username: ")
         password = input("Password: ")
+
+        hash_check = hashlib.md5()
+        hash_check.update(bytes(password + self.salt_value, 'utf-8'))
+
+        password = hash_check.hexdigest()
 
         try:
             cmd = "SELECT username, password FROM users WHERE username = ? AND password = ?"

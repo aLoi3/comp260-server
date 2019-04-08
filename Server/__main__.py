@@ -9,6 +9,8 @@ import Dungeon
 import Player
 import Database
 
+from cryptography.fernet import Fernet
+
 clients = {}
 clients_lock = threading.Lock()
 message_queue = Queue()
@@ -65,8 +67,11 @@ if __name__ == '__main__':
         while message_queue.qsize() > 0:
             try:
                 client_and_message = message_queue.get()
+                key = client_and_message[2]
+                cipher_suite = Fernet(key)
+                message = cipher_suite.decrypt(client_and_message[1])
                 client_reply = input_manager.player_input(
-                    client_and_message[1],
+                    message,
                     client_and_message[0],
                     my_dungeon,
                     my_database
