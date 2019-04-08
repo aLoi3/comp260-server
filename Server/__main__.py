@@ -1,11 +1,13 @@
 import socket
 import threading
 import time
+import sqlite3
 from queue import *
 
 import Input
 import Dungeon
 import Player
+import Database
 
 clients = {}
 clients_lock = threading.Lock()
@@ -49,6 +51,8 @@ if __name__ == '__main__':
     my_dungeon.Init()
     # my_player = Player.Player(my_dungeon, '1-entrance')
     input_manager = Input.Input()
+    my_database = Database.Database()
+    my_database.create_database()
 
     my_accept_thread = threading.Thread(target=accept_clients, args=(my_socket, ))
     my_accept_thread.start()
@@ -61,7 +65,12 @@ if __name__ == '__main__':
         while message_queue.qsize() > 0:
             try:
                 client_and_message = message_queue.get()
-                client_reply = input_manager.player_input(client_and_message[1], client_and_message[0], my_dungeon)
+                client_reply = input_manager.player_input(
+                    client_and_message[1],
+                    client_and_message[0],
+                    my_dungeon,
+                    my_database
+                )
                 if client_reply is not None:
                     client_and_message[0].send(client_reply.encode())
 

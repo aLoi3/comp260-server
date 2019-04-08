@@ -1,3 +1,9 @@
+import sqlite3
+import hashlib
+import cryptography
+
+from cryptography.fernet import Fernet
+
 from colorama import init
 from colorama import Fore
 init(autoreset=True)
@@ -5,7 +11,7 @@ init(autoreset=True)
 
 class Input:
     def __init__(self):
-        self.current_input: str = ''
+        self.current_input = ''
         self.all_connected_clients = ''
         self.current_client = ''
 
@@ -29,9 +35,11 @@ class Input:
                " NOTE: If you are not using any of the commands, it will be a normal text and everyone in the room will hear it. \n" \
 
 
-    def player_input(self, current_input, client, dungeon):
+    def player_input(self, current_input, client, dungeon, database):
         self.current_input = current_input
         self.current_client = client
+        self.database = sqlite3.connect(database)
+        self.cursor = self.database.cursor()
         my_dungeon = dungeon
         my_player = self.all_connected_clients.get(client)
 
@@ -80,7 +88,7 @@ class Input:
         # Change player name
         elif command == "name":
             my_player.player_name = split_input[1]
-            return "You are not more a stranger, You named yourself " + split_input[1]
+            return "You are no more a stranger, You named yourself " + split_input[1]
 
         else:
             # Chat messages
@@ -92,12 +100,96 @@ class Input:
                 client.send(message.encode())
             return
 
+        if command == "register":
+            self.register()
+
+        if command == "login":
+            self.login()
+
+        if command == "exit":
+            self.exit()
+
     # Message to output whether the player has left or joined the room
     def join_leave_message(self, player, join_or_leave):
         clients_in_the_room = self.check_room_for_players(player)
         message_output = player.player_name + " has " + join_or_leave + " the room..."
         for client in clients_in_the_room:
             client.send(message_output.encode())
+
+    def register(self):
+        cmd = 'CREATE TABLE IF NOT EXISTS users (username varchar(20), password varchar(20) )'
+        self.cursor.execute(cmd)
+
+        username = input("Username: ")
+        password = input("Password: ")
+
+        # Put a bit of salt into the password
+        salted_password = self.password_salt(password)
+
+        # Now add a spoon of encryption to top it off
+        encrypted_password = self.fernet_crypto(salted_password)
+
+        # Voila - we get extremely uncrackable password... * Just believe *
+        try:
+            cmd = "SELECT * FROM users WHERE username == '" + username + "'"
+            self.cursor.execute(cmd)
+            rows = self.cursor.fetchall()
+
+            if len(rows) == 0:
+                cmd = 'INSERT INTO users(username, password) values(?,?)'
+                self.cursor.execute(cmd, (username, encrypted_password))
+                self.database.commit()
+
+        except Exception:
+            print("Failed to Add to Database \n")
+
+    def password_salt(self, password):
+        simple_hash = hashlib.md5()
+        simple_hash.update(bytes(password, 'utf-8'))
+        print("Simple password hash: " + simple_hash.hexdigest())
+
+        salt = hashlib.md5()
+        salt.update(bytes('salty mcsalt-salt', 'utf-8'))
+        print("Salt: " + salt.hexdigest())
+
+        s = hashlib.md5()
+        s.update(bytes(password, 'utf-8') + salt.digest())
+        print("Salted password hash: " + s.hexdigest())
+
+        return s.hexdigest()
+
+    def fernet_crypto(self, password):
+        key = Fernet.generate_key()
+        cipher_suite = Fernet(key)
+        cipher_text = cipher_suite.encrypt(bytes(password.encode('utf-8')))
+        #plain_text = cipher_suite.decrypt(cipher_text)     # get decrypted password (salted at the time)
+
+        return cipher_text
+
+    def login(self):
+        username = input("Username: ")
+        password = input("Password: ")
+
+        try:
+            cmd = "SELECT username, password FROM users WHERE username = ? AND password = ?"
+            self.cursor.execute(cmd, (username, password))
+            rows = self.cursor.fetchall()
+            for row in rows:
+                username_check = '{0}'.format(row[0])
+                password_check = '{0}'.format(row[1])
+
+                if(username == username_check and password == password_check):
+                    # ToDo: Do Login Here
+                    print("Login here")
+                else:
+                    print("Username or Password are incorrect")
+
+        except Exception:
+            print("Failed to Login")
+
+    def exit(self):
+        # ToDo: Implement exit here
+        print("Cause errors... And Python")
 
     # Message to output if the player chooses unavailable direction to go
     def handleBadInput(self):

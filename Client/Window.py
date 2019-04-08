@@ -14,14 +14,13 @@ class Window(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def __init__(self):
         QtWidgets.QMainWindow.__init__(self)
-        #self.ui = uic.loadUi("PyqtWindow.ui", self)
         Ui_MainWindow.__init__(self)
         self.setupUi(self)
         self.input_manager = ''
         self.message_queue = Queue()
 
         self.timer = QtCore.QTimer()
-        self.timer.connect(self.timerEvent)
+        self.timer.timeout.connect(self.timerEvent)
         self.timer.start(100)
         self.client = ''
 
@@ -30,7 +29,6 @@ class Window(QtWidgets.QMainWindow, Ui_MainWindow):
         window = Window()
         window.show()
         sys.exit(app.exec_())
-        #self.ui.show()
 
     def timerEvent(self):
         while self.message_queue.qsize() > 0:

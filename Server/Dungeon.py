@@ -99,3 +99,11 @@ class Dungeon:
             if direction == "west":
                 self.currentRoom = self.room[self.currentRoom].west
                 return
+
+            if direction == "up":
+                self.currentRoom = self.room[self.currentRoom].up
+                return
+
+            if direction == "down":
+                self.currentRoom = self.room[self.currentRoom].down
+                return

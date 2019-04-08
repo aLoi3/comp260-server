@@ -24,4 +24,10 @@ class Room:
         if(direction == 'west') and (self.west != ""):
             return True
 
+        if (direction == 'up') and (self.up != ""):
+            return True
+
+        if (direction == 'down') and (self.down != ""):
+            return True
+
         return False
