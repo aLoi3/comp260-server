@@ -8,10 +8,6 @@ import time
 
 from PyQt5.QtWidgets import QApplication
 
-from colorama import init
-from colorama import Fore
-init(autoreset=True)
-
 
 class Client:
 
