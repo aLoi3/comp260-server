@@ -13,6 +13,7 @@ from cryptography.fernet import Fernet
 
 clients = {}
 clients_lock = threading.Lock()
+lost_clients = []
 message_queue = Queue()
 
 
@@ -24,6 +25,7 @@ def receive_thread(client_socket):
             print("Adding to queue")  # delete later ?
         except socket.error:
             print("Client lost")
+            lost_clients.append(client_socket)
             receive_is_running = False
 
 
@@ -36,7 +38,7 @@ def accept_clients(server_socket):
         clients[new_client[0]] = Player.Player(my_dungeon, '1-entrance')
         my_receive_thread = threading.Thread(target=receive_thread, args=(new_client[0], ))
         my_receive_thread.start()
-        input_manager.all_connected_clients = clients
+        input_manager.all_connected_clients = dict(clients)
         clients_lock.release()
 
 
@@ -54,7 +56,6 @@ if __name__ == '__main__':
     # my_player = Player.Player(my_dungeon, '1-entrance')
     input_manager = Input.Input()
     my_database = Database.Database()
-    my_database.create_database()
 
     my_accept_thread = threading.Thread(target=accept_clients, args=(my_socket, ))
     my_accept_thread.start()
@@ -67,11 +68,11 @@ if __name__ == '__main__':
         while message_queue.qsize() > 0:
             try:
                 client_and_message = message_queue.get()
-                key = client_and_message[2]
-                cipher_suite = Fernet(key)
-                message = cipher_suite.decrypt(client_and_message[1])
+                #key = client_and_message[2]
+                #cipher_suite = Fernet(key)
+                #message = cipher_suite.decrypt(client_and_message[1])
                 client_reply = input_manager.player_input(
-                    message,
+                    client_and_message[1],
                     client_and_message[0],
                     my_dungeon,
                     my_database
@@ -87,5 +88,8 @@ if __name__ == '__main__':
             clients.pop(client)
             input_manager.all_connected_clients = clients
 
+        lost_clients = []
+
         clients_lock.release()
+
         time.sleep(0.5)

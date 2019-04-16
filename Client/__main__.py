@@ -41,7 +41,7 @@ class Client:
                     self.my_window.textEdit.append("Server Lost")
                     time.sleep(2)
 
-    def connect_thread(self, input_manager):
+    def connect_thread(self):
         while self.is_running:
             while self.is_connected is False:
                 if self.my_socket is None:
@@ -60,17 +60,20 @@ class Client:
                     time.sleep(2)
 
     def main(self):
-        self.input_manager = Input.Input(self.my_socket)
 
-        self.my_window.input_manager = self.input_manager
-        self.my_connection_thread = threading.Thread(target=self.connect_thread, args=(self.input_manager, ))
+        self.my_connection_thread = threading.Thread(target=self.connect_thread)
         self.my_connection_thread.start()
+
         self.my_receive_thread = threading.Thread(target=self.receive_thread)
         self.my_receive_thread.start()
 
+        self.input_manager = Input.Input(self.my_socket)
+
+        self.my_window.input_manager = self.input_manager
+
         self.my_window.window_draw()
 
-        #sys.exit(self.app.exec_())
+        sys.exit(self.app.exec_())
 
 
 if __name__ == '__main__':

@@ -1,12 +1,9 @@
 import sqlite3
 import hashlib
 import cryptography
+import Database
 
 from cryptography.fernet import Fernet
-
-from colorama import init
-from colorama import Fore
-init(autoreset=True)
 
 
 class Input:
@@ -38,13 +35,11 @@ class Input:
     def player_input(self, current_input, client, dungeon, database):
         self.current_input = current_input
         self.current_client = client
-        self.database = sqlite3.connect(database)
-        self.cursor = self.database.cursor()
-        self.salt_value = None
+        self.my_database = database
         my_dungeon = dungeon
         my_player = self.all_connected_clients.get(client)
 
-        split_input = current_input.split(' ', 1)
+        split_input = current_input.split()
         command = split_input[0].lower()
         if len(split_input) >= 2:
             direction = split_input[1].lower()
@@ -55,7 +50,7 @@ class Input:
             return my_dungeon.DisplayCurrentRoom(my_player)
 
         elif command == 'help':
-            return Fore.MAGENTA + self.print_help() + Fore.RESET
+            return self.print_help()
 
         # Commands to go to a room
         elif command == 'go':
@@ -83,8 +78,60 @@ class Input:
                     my_player.current_room = my_dungeon.room[my_player.current_room].west
                     self.join_leave_message(my_player, 'joined')
                     return my_dungeon.DisplayCurrentRoom(my_player)
+
+                if direction == 'up':
+                    self.join_leave_message(my_player, 'left')
+                    my_player.current_room = my_dungeon.room[my_player.current_room].up
+                    self.join_leave_message(my_player, 'joined')
+                    return my_dungeon.DisplayCurrentRoom(my_player)
+
+                if direction == 'down':
+                    self.join_leave_message(my_player, 'left')
+                    my_player.current_room = my_dungeon.room[my_player.current_room].down
+                    self.join_leave_message(my_player, 'joined')
+                    return my_dungeon.DisplayCurrentRoom(my_player)
             else:
                 return self.handleBadInput()
+
+        elif command == "register":
+            #self.register()
+
+            username = split_input[1]
+            password = split_input[2]
+
+            salt = hashlib.md5()
+            salt.update(bytes('salty mcsalt-salt', 'utf-8'))
+
+            salt_value = salt.hexdigest()
+
+            simple_hash = hashlib.md5()
+            simple_hash.update(bytes(password + salt_value, 'utf-8'))
+
+            salted_password = simple_hash.hexdigest()
+
+            self.my_database.add_user(username, salted_password, salt_value)
+
+        elif command == "login":
+            #self.login()
+
+            username = split_input[1]
+            password = split_input[2]
+
+            salt = self.my_database.get_value("salt", "users", "username", username)
+
+            simple_hash = hashlib.md5()
+            simple_hash.update(bytes(password + salt, 'utf-8'))
+            salted_password = simple_hash.hexdigest()
+
+            if (self.my_database.check_value("username", "users", "username", username, username) is True):
+                if (self.my_database.check_value("password", "users", "username", username, salted_password) is True):
+                    # TO:DO Change the state to logged in state
+                    print("Successfully logged in")
+                else:
+                    print("Password is incorrect")
+            else:
+                print("Username is incorrect")
+
 
         # Change player name
         elif command == "name":
@@ -93,19 +140,13 @@ class Input:
 
         else:
             # Chat messages
-            message = Fore.RED + my_player.player_name + ': ' + Fore.GREEN + ' '.join(split_input)
-            self_message = Fore.LIGHTBLUE_EX + 'Your words: ' + Fore.GREEN + ' '.join(split_input)
+            message = my_player.player_name + ': ' + ' '.join(split_input)
+            self_message = 'Your words: ' + ' '.join(split_input)
             client.send(self_message.encode())
             clients_in_room = self.check_room_for_players(my_player)
             for client in clients_in_room:
                 client.send(message.encode())
             return
-
-        if command == "register":
-            self.register()
-
-        if command == "login":
-            self.login()
 
         if command == "exit":
             self.exit()
@@ -118,44 +159,20 @@ class Input:
             client.send(message_output.encode())
 
     def register(self):
-        #cmd = 'CREATE TABLE IF NOT EXISTS users (username varchar(20), password varchar(20) )'
-        #self.cursor.execute(cmd)
-
         username = input("Username: ")
         password = input("Password: ")
 
-        # Put a bit of salt into the password
-        salted_password = self.password_salt(password)
-
-        # Now add a spoon of encryption to top it off
-        # encrypted_password = self.fernet_crypto(salted_password)
-
-        # Voila - we get extremely uncrackable password... * Just believe *
-        try:
-            cmd = "SELECT * FROM users WHERE username == '" + username + "'"
-            self.cursor.execute(cmd)
-            rows = self.cursor.fetchall()
-
-            if len(rows) == 0:
-                cmd = 'INSERT INTO users(username, password) values(?,?)'
-                self.cursor.execute(cmd, (username, salted_password))
-                self.database.commit()
-
-        except Exception:
-            print("Failed to Add to Database \n")
-
-    def password_salt(self, password):
         salt = hashlib.md5()
         salt.update(bytes('salty mcsalt-salt', 'utf-8'))
 
-        self.salt_value = salt.hexdigest()
+        salt_value = salt.hexdigest()
 
         simple_hash = hashlib.md5()
-        simple_hash.update(bytes(password + self.salt_value, 'utf-8'))
+        simple_hash.update(bytes(password + salt_value, 'utf-8'))
 
         salted_password = simple_hash.hexdigest()
 
-        return salted_password
+        self.my_database.add_user(username, salted_password, salt_value)
 
     def fernet_crypto(self, password):
         key = Fernet.generate_key()
@@ -169,27 +186,16 @@ class Input:
         username = input("Username: ")
         password = input("Password: ")
 
-        hash_check = hashlib.md5()
-        hash_check.update(bytes(password + self.salt_value, 'utf-8'))
+        salt = self.my_database.get_value("salt", "users", "username", username)
 
-        password = hash_check.hexdigest()
+        simple_hash = hashlib.md5()
+        simple_hash.update(bytes(password + salt, 'utf-8'))
+        salted_password = simple_hash.hexdigest()
 
-        try:
-            cmd = "SELECT username, password FROM users WHERE username = ? AND password = ?"
-            self.cursor.execute(cmd, (username, password))
-            rows = self.cursor.fetchall()
-            for row in rows:
-                username_check = '{0}'.format(row[0])
-                password_check = '{0}'.format(row[1])
-
-                if(username == username_check and password == password_check):
-                    # ToDo: Do Login Here
-                    print("Login here")
-                else:
-                    print("Username or Password are incorrect")
-
-        except Exception:
-            print("Failed to Login")
+        if(self.my_database.check_value("username", "users", "username", username, username) is True):
+            if(self.my_database.check_value("password", "users", "username", username, salted_password) is True):
+                # TO:DO Change the state to logged in state
+                print("Successfully logged in")
 
     def exit(self):
         # ToDo: Implement exit here

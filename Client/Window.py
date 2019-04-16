@@ -14,6 +14,7 @@ class Window(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def __init__(self):
         QtWidgets.QMainWindow.__init__(self)
+        self.ui = uic.loadUi("PyqtWindow.ui", self)
         Ui_MainWindow.__init__(self)
         self.setupUi(self)
         self.input_manager = ''
@@ -25,23 +26,20 @@ class Window(QtWidgets.QMainWindow, Ui_MainWindow):
         self.client = ''
 
     def window_draw(self):
-        app = QApplication(sys.argv)
-        window = Window()
-        window.show()
-        sys.exit(app.exec_())
+        self.ui.show()
 
     def timerEvent(self):
         while self.message_queue.qsize() > 0:
             self.textEdit.append(self.message_queue.get())
 
     def text_enter(self):
-        if self.lineEdit.text() is not '':
+        if self.lineEdit.text() != '':
             self.input_manager.player_input(self.lineEdit.text())
         self.lineEdit.clear()
 
     def keyPressEvent(self, event):
         key = event.key()
-        if key is Qt.Key_Return:
+        if key == Qt.Key_Return:
             self.text_enter()
 
     def closeEvent(self, event):
