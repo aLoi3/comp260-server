@@ -1,16 +1,21 @@
 import sqlite3
 import hashlib
 import cryptography
-import Database
 
 from cryptography.fernet import Fernet
+
+Idle = 0
+In_register = 1
+In_Login = 2
+Logged_in = 3
+In_game = 4
 
 
 class Input:
     def __init__(self):
-        self.current_input = ''
         self.all_connected_clients = ''
         self.current_client = ''
+        self.current_state = Idle
 
     # Function to check if there are players in the room
     def check_room_for_players(self, my_player):
@@ -23,6 +28,9 @@ class Input:
 
         return clients_in_room
 
+    def change_state(self, state):
+        self.current_state = state
+
     # Outputs help commands
     def print_help(self):
         return " I will be your guide through this worst-ever-made dungeon... That's what I think, at least. And please, read me as if it was a spooky ghost, deal? BOOooOOoo \n" \
@@ -33,123 +41,68 @@ class Input:
 
 
     def player_input(self, current_input, client, dungeon, database):
-        self.current_input = current_input
         self.current_client = client
         self.my_database = database
-        my_dungeon = dungeon
-        my_player = self.all_connected_clients.get(client)
+        self.my_dungeon = dungeon
+        self.my_player = self.all_connected_clients.get(client)
 
-        split_input = current_input.split()
-        command = split_input[0].lower()
-        if len(split_input) >= 2:
-            direction = split_input[1].lower()
-        else:
-            direction = ''
+        self.split_input = current_input.split()
+        self.command = self.split_input[0].lower()
 
-        if command == 'start':
-            return my_dungeon.DisplayCurrentRoom(my_player)
+        print(self.current_state)
 
-        elif command == 'help':
-            return self.print_help()
-
-        # Commands to go to a room
-        elif command == 'go':
-            if my_dungeon.room[my_player.current_room].HasExit(direction):
-                if direction == 'north':
-                    self.join_leave_message(my_player, 'left')
-                    my_player.current_room = my_dungeon.room[my_player.current_room].north
-                    self.join_leave_message(my_player, 'joined')
-                    return my_dungeon.DisplayCurrentRoom(my_player)
-
-                if direction == 'east':
-                    self.join_leave_message(my_player, 'left')
-                    my_player.current_room = my_dungeon.room[my_player.current_room].east
-                    self.join_leave_message(my_player, 'joined')
-                    return my_dungeon.DisplayCurrentRoom(my_player)
-
-                if direction == 'south':
-                    self.join_leave_message(my_player, 'left')
-                    my_player.current_room = my_dungeon.room[my_player.current_room].south
-                    self.join_leave_message(my_player, 'joined')
-                    return my_dungeon.DisplayCurrentRoom(my_player)
-
-                if direction == 'west':
-                    self.join_leave_message(my_player, 'left')
-                    my_player.current_room = my_dungeon.room[my_player.current_room].west
-                    self.join_leave_message(my_player, 'joined')
-                    return my_dungeon.DisplayCurrentRoom(my_player)
-
-                if direction == 'up':
-                    self.join_leave_message(my_player, 'left')
-                    my_player.current_room = my_dungeon.room[my_player.current_room].up
-                    self.join_leave_message(my_player, 'joined')
-                    return my_dungeon.DisplayCurrentRoom(my_player)
-
-                if direction == 'down':
-                    self.join_leave_message(my_player, 'left')
-                    my_player.current_room = my_dungeon.room[my_player.current_room].down
-                    self.join_leave_message(my_player, 'joined')
-                    return my_dungeon.DisplayCurrentRoom(my_player)
+        if self.current_state == Idle:
+            if self.command == "register":
+                message = self.register()
+            elif self.command == "login":
+                message = self.login()
             else:
-                return self.handleBadInput()
+                message = "Incorrect Input"
 
-        elif command == "register":
-            #self.register()
+            return message
 
-            username = split_input[1]
-            password = split_input[2]
+        elif self.current_state == In_register:
+            # To:Do Allow only register here
+            print("In register lobby")
+            message = self.in_register()
 
-            salt = hashlib.md5()
-            salt.update(bytes('salty mcsalt-salt', 'utf-8'))
+            return message
 
-            salt_value = salt.hexdigest()
+        elif self.current_state == In_Login:
+            print("In login lobby")
 
-            simple_hash = hashlib.md5()
-            simple_hash.update(bytes(password + salt_value, 'utf-8'))
+            message = self.in_login()
 
-            salted_password = simple_hash.hexdigest()
+            return message
 
-            self.my_database.add_user(username, salted_password, salt_value)
+        elif self.current_state == Logged_in:
+            # To:Do: Allow only character chose here
+            print("In character lobby")
 
-        elif command == "login":
-            #self.login()
-
-            username = split_input[1]
-            password = split_input[2]
-
-            salt = self.my_database.get_value("salt", "users", "username", username)
-
-            simple_hash = hashlib.md5()
-            simple_hash.update(bytes(password + salt, 'utf-8'))
-            salted_password = simple_hash.hexdigest()
-
-            if (self.my_database.check_value("username", "users", "username", username, username) is True):
-                if (self.my_database.check_value("password", "users", "username", username, salted_password) is True):
-                    # TO:DO Change the state to logged in state
-                    print("Successfully logged in")
-                else:
-                    print("Password is incorrect")
+            if self.command == "start":
+                message = self.start()
             else:
-                print("Username is incorrect")
+                message = "Incorrect Input"
 
+            return message
 
-        # Change player name
-        elif command == "name":
-            my_player.player_name = split_input[1]
-            return "You are no more a stranger, You named yourself " + split_input[1]
+        elif self.current_state == In_game:
+            if self.command == "go":
+                message = self.move()
+            elif self.command == "help":
+                message = self.help()
+            elif self.command == "name":
+                message = self.change_name()
+            else:
+                message = "Incorrect Input"
 
-        else:
-            # Chat messages
-            message = my_player.player_name + ': ' + ' '.join(split_input)
-            self_message = 'Your words: ' + ' '.join(split_input)
-            client.send(self_message.encode())
-            clients_in_room = self.check_room_for_players(my_player)
-            for client in clients_in_room:
-                client.send(message.encode())
-            return
+            return message
 
-        if command == "exit":
+        elif self.command == "exit":
             self.exit()
+
+        else:
+            print("Incorrect command")
 
     # Message to output whether the player has left or joined the room
     def join_leave_message(self, player, join_or_leave):
@@ -158,9 +111,83 @@ class Input:
         for client in clients_in_the_room:
             client.send(message_output.encode())
 
+    def change_name(self):
+        self.my_player.player_name = self.split_input[1]
+        return "You are no more a stranger, You named yourself " + self.split_input[1]
+
+    def message(self):
+        # Chat messages
+        message = self.my_player.player_name + ': ' + ' '.join(self.split_input)
+        self_message = 'Your words: ' + ' '.join(self.split_input)
+        self.current_client.send(self_message.encode())
+        clients_in_room = self.check_room_for_players(self.my_player)
+        for client in clients_in_room:
+            client.send(message.encode())
+        return
+
+    def help(self):
+        return self.print_help()
+
+    def move(self):
+        if len(self.split_input) >= 2:
+            direction = self.split_input[1].lower()
+        else:
+            direction = ''
+
+        if self.my_dungeon.room[self.my_player.current_room].HasExit(direction):
+            if direction == 'north':
+                self.join_leave_message(self.my_player, 'left')
+                self.my_player.current_room = self.my_dungeon.room[self.my_player.current_room].north
+                self.join_leave_message(self.my_player, 'joined')
+                return self.my_dungeon.DisplayCurrentRoom(self.my_player)
+
+            if direction == 'east':
+                self.join_leave_message(self.my_player, 'left')
+                self.my_player.current_room = self.my_dungeon.room[self.my_player.current_room].east
+                self.join_leave_message(self.my_player, 'joined')
+                return self.my_dungeon.DisplayCurrentRoom(self.my_player)
+
+            if direction == 'south':
+                self.join_leave_message(self.my_player, 'left')
+                self.my_player.current_room = self.my_dungeon.room[self.my_player.current_room].south
+                self.join_leave_message(self.my_player, 'joined')
+                return self.my_dungeon.DisplayCurrentRoom(self.my_player)
+
+            if direction == 'west':
+                self.join_leave_message(self.my_player, 'left')
+                self.my_player.current_room = self.my_dungeon.room[self.my_player.current_room].west
+                self.join_leave_message(self.my_player, 'joined')
+                return self.my_dungeon.DisplayCurrentRoom(self.my_player)
+
+            if direction == 'up':
+                self.join_leave_message(self.my_player, 'left')
+                self.my_player.current_room = self.my_dungeon.room[self.my_player.current_room].up
+                self.join_leave_message(self.my_player, 'joined')
+                return self.my_dungeon.DisplayCurrentRoom(self.my_player)
+
+            if direction == 'down':
+                self.join_leave_message(self.my_player, 'left')
+                self.my_player.current_room = self.my_dungeon.room[self.my_player.current_room].down
+                self.join_leave_message(self.my_player, 'joined')
+                return self.my_dungeon.DisplayCurrentRoom(self.my_player)
+        else:
+            return self.handleBadInput()
+
+    def start(self):
+        self.change_state(In_game)
+        return self.my_dungeon.DisplayCurrentRoom(self.my_player)
+
     def register(self):
-        username = input("Username: ")
-        password = input("Password: ")
+        print("Changing the state to In_register")
+        self.change_state(In_register)
+        print(self.current_state)
+        return " Write down your username and password to register"
+
+    def in_register(self):
+        print("Write down your username and password")
+
+        username = self.split_input[0]
+        password = self.split_input[1]
 
         salt = hashlib.md5()
         salt.update(bytes('salty mcsalt-salt', 'utf-8'))
@@ -174,28 +201,40 @@ class Input:
 
         self.my_database.add_user(username, salted_password, salt_value)
 
-    def fernet_crypto(self, password):
-        key = Fernet.generate_key()
-        cipher_suite = Fernet(key)
-        cipher_text = cipher_suite.encrypt(bytes(password.encode('utf-8')))
-        #plain_text = cipher_suite.decrypt(cipher_text)     # get decrypted password (salted at the time)
+        self.change_state(Idle)
 
-        return cipher_text
+        return " Successfully registered"
 
     def login(self):
-        username = input("Username: ")
-        password = input("Password: ")
+        print("Changing the state to In_Login")
+        self.change_state(In_Login)
+        print(self.current_state)
+        return " Write down your username and password to login"
 
-        salt = self.my_database.get_value("salt", "users", "username", username)
+    def in_login(self):
+        print("Write down your username and password")
 
-        simple_hash = hashlib.md5()
-        simple_hash.update(bytes(password + salt, 'utf-8'))
-        salted_password = simple_hash.hexdigest()
+        username = self.split_input[0]
+        password = self.split_input[1]
 
-        if(self.my_database.check_value("username", "users", "username", username, username) is True):
-            if(self.my_database.check_value("password", "users", "username", username, salted_password) is True):
+        if self.my_database.check_value("username", "users", "username", username, username) is True:
+            salt = self.my_database.get_value("salt", "users", "username", username)
+
+            simple_hash = hashlib.md5()
+            simple_hash.update(bytes(password + salt, 'utf-8'))
+            salted_password = simple_hash.hexdigest()
+        else:
+            salted_password = ''
+
+        if self.my_database.check_value("username", "users", "username", username, username) is True:
+            if self.my_database.check_value("password", "users", "username", username, salted_password) is True:
                 # TO:DO Change the state to logged in state
-                print("Successfully logged in")
+                self.change_state(Logged_in)
+                return " Successfully logged in. \n Type 'Start' to start the game."
+            else:
+                return " Password is incorrect. Try again"
+        else:
+            return " Username is incorrect. Try again"
 
     def exit(self):
         # ToDo: Implement exit here
