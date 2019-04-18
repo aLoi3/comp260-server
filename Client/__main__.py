@@ -5,6 +5,7 @@ import sys
 import socket
 import threading
 import time
+import json
 
 from PyQt5.QtWidgets import QApplication
 
@@ -30,7 +31,17 @@ class Client:
         while self.is_running:
             if self.is_connected:
                 try:
-                    self.my_window.message_queue.put(self.my_socket.recv(4096).decode("utf-8"))
+                    #self.my_window.message_queue.put(self.my_socket.recv(4096).decode("utf-8"))
+                    packet_id = self.my_socket.recv(10)
+
+                    if packet_id.decode('utf-8') == 'PyramidMUD':
+                        payload_size = int.from_bytes(self.my_socket.recv(2), 'little')
+                        payload_data = self.my_socket.recv(payload_size)
+                        data = json.loads(payload_data)
+                        self.my_window.message_queue.put(data['message'])
+
+                    else:
+                        self.my_window.message_queue.put("Invalid Packet")
                 except socket.error:
                     self.my_socket = None
                     self.is_connected = False
@@ -48,7 +59,8 @@ class Client:
                     self.is_connected = True
                     self.input_manager.my_socket = self.my_socket
                     self.my_window.textEdit.append("Connected to Server \n")
-                    self.my_window.textEdit.append(" Type 'Register' to create and account or 'Login' to login into the game. \n")
+                    self.my_window.textEdit.append(" Type 'Register' to create and account or "
+                                                   "'Login' to login into the game. \n")
                     time.sleep(2)
 
                 except socket.error:

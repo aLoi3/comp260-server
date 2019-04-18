@@ -41,12 +41,29 @@ class Database:
         else:
             return False
 
+    def get_current_room(self, player):
+        cmd = "SELECT current_room FROM players WHERE player_name =?"
+        self.cursor.execute(cmd, (player, ))
+        result = self.cursor.fetchone()
+        return result[0]
+
+    def set_current_room(self, player, room):
+        cmd = "UPDATE players SET current_room =? WHERE player_name =?"
+        self.cursor.execute(cmd, (room, player))
+        self.database.commit()
+
+    def get_connection(self, direction, current_room):
+        cmd = "SELECT " + direction + " FROM dungeon WHERE name =?"
+        self.cursor.execute(cmd, (current_room, ))
+        result = self.cursor.fetchone()
+        return result[0]
+
     def create_player_database(self):
         try:
             cmd = '''CREATE TABLE IF NOT EXISTS players (
             id INTEGER PRIMARY KEY, 
             owner_username TEXT, 
-            current_room INTEGER DEFAULT 1, 
+            current_room TEXT, 
             player_name TEXT 
             )'''
             self.cursor.execute(cmd)
@@ -61,12 +78,12 @@ class Database:
             cmd = '''CREATE TABLE IF NOT EXISTS dungeon (
             name TEXT PRIMARY KEY, 
             description TEXT, 
-            north INTEGER DEFAULT '', 
-            east INTEGER DEFAULT '', 
-            south INTEGER DEFAULT '', 
-            west INTEGER DEFAULT '', 
-            up INTEGER DEFAULT '', 
-            down INTEGER DEFAULT ''
+            north TEXT DEFAULT '', 
+            east TEXT DEFAULT '', 
+            south TEXT DEFAULT '', 
+            west TEXT DEFAULT '', 
+            up TEXT DEFAULT '', 
+            down TEXT DEFAULT ''
             )'''
             self.cursor.execute(cmd)
             self.database.commit()

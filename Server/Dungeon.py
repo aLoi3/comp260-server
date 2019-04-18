@@ -55,7 +55,7 @@ class Dungeon:
                                      down="1-branchWNE")
         self.room["2-start2"] = Room("2-start2",
                                      " Yeah.. You are still alive, what a shame. I wanted to play with some other strangers that think they can find treasures here. But oh well, shall we continue then? "
-                                     " Oh right, there is no way from here. Just because creator, one word but says so much.",
+                                     " Oh right, there is no way from here. Just because creator, one word but says so much. \n",
                                      down="1-branchEEN")
 
         self.currentRoom = "1-entrance"

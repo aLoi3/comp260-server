@@ -1,5 +1,6 @@
 import sqlite3
 import hashlib
+import json
 import cryptography
 
 from cryptography.fernet import Fernet
@@ -16,6 +17,12 @@ class Input:
         self.all_connected_clients = ''
         self.current_client = ''
         self.current_state = Idle
+        self.my_database = None
+        self.my_dungeon = None
+        self.my_player = None
+        self.split_input = ''
+        self.command = ''
+        self.packet_ID = 'PyramidMUD'
 
     # Function to check if there are players in the room
     def check_room_for_players(self, my_player):
@@ -31,13 +38,25 @@ class Input:
     def change_state(self, state):
         self.current_state = state
 
+    def send_message(self, message, client):
+        dictionary = {"message": message}
+        json_packet = json.dumps(dictionary)
+        header = len(json_packet).to_bytes(2, byteorder='little')
+
+        if self.current_client is not None:
+            client.send(self.packet_ID.encode())
+            client.send(header)
+            client.send(json_packet.encode())
+
     # Outputs help commands
     def print_help(self):
-        return " I will be your guide through this worst-ever-made dungeon... That's what I think, at least. And please, read me as if it was a spooky ghost, deal? BOOooOOoo \n" \
+        return " I will be your guide through this worst-ever-made dungeon..." \
+               " That's what I think, at least. And please, read me as if it was a spooky ghost, deal? BOOooOOoo \n" \
                " Nevertheless, these are your possible commands: \n" \
                " go <direction> \n Directions: NORTH, SOUTH, EAST, WEST \n" \
                " name <your_name>: Change your name to the one you want" \
-               " NOTE: If you are not using any of the commands, it will be a normal text and everyone in the room will hear it. \n" \
+               " NOTE: If you are not using any of the commands, it will be a normal text and" \
+               " everyone in the room will hear it. \n" \
 
 
     def player_input(self, current_input, client, dungeon, database):
@@ -59,21 +78,21 @@ class Input:
             else:
                 message = "Incorrect Input"
 
-            return message
+            self.send_message(message, self.current_client)
 
         elif self.current_state == In_register:
             # To:Do Allow only register here
             print("In register lobby")
             message = self.in_register()
 
-            return message
+            self.send_message(message, self.current_client)
 
         elif self.current_state == In_Login:
             print("In login lobby")
 
             message = self.in_login()
 
-            return message
+            self.send_message(message, self.current_client)
 
         elif self.current_state == Logged_in:
             # To:Do: Allow only character chose here
@@ -84,7 +103,7 @@ class Input:
             else:
                 message = "Incorrect Input"
 
-            return message
+            self.send_message(message, self.current_client)
 
         elif self.current_state == In_game:
             if self.command == "go":
@@ -96,20 +115,21 @@ class Input:
             else:
                 message = "Incorrect Input"
 
-            return message
+            self.send_message(message, self.current_client)
 
         elif self.command == "exit":
             self.exit()
 
         else:
-            print("Incorrect command")
+            self.send_message('Incorrect command', self.current_client)
 
     # Message to output whether the player has left or joined the room
     def join_leave_message(self, player, join_or_leave):
         clients_in_the_room = self.check_room_for_players(player)
         message_output = player.player_name + " has " + join_or_leave + " the room..."
         for client in clients_in_the_room:
-            client.send(message_output.encode())
+            #client.send(message_output.encode())
+            self.send_message(message_output, client)
 
     def change_name(self):
         self.my_player.player_name = self.split_input[1]
@@ -119,14 +139,36 @@ class Input:
         # Chat messages
         message = self.my_player.player_name + ': ' + ' '.join(self.split_input)
         self_message = 'Your words: ' + ' '.join(self.split_input)
-        self.current_client.send(self_message.encode())
+        #self.current_client.send(self_message.encode())
+        self.send_message(self_message, self.current_client)
         clients_in_room = self.check_room_for_players(self.my_player)
         for client in clients_in_room:
-            client.send(message.encode())
+            #client.send(message.encode())
+            self.send_message(message, client)
         return
 
     def help(self):
         return self.print_help()
+
+    def valid_move(self, direction, player):
+        current_room = self.my_database.get_current_room(player)
+        connection = self.my_database.get_connection(direction, current_room)
+
+        if connection is not '':
+            self.join_leave_message(player, 'left')
+            self.my_database.set_current_room(player, connection)
+            self.join_leave_message(player, 'joined')
+            clients_in_room = self.check_room_for_players(player)
+            reply_to_player = self.my_database.get_value('description', 'dungeon', 'name', connection)
+            if clients_in_room:
+                reply_to_player += "You see "
+                for client in clients_in_room:
+                    reply_to_player += self.all_connected_clients.get(client)
+                reply_to_player += " in the room. \n"
+
+            return reply_to_player
+        else:
+            return "There is not path this way! \n"
 
     def move(self):
         if len(self.split_input) >= 2:
@@ -136,42 +178,19 @@ class Input:
 
         if self.my_dungeon.room[self.my_player.current_room].HasExit(direction):
             if direction == 'north':
-                self.join_leave_message(self.my_player, 'left')
-                self.my_player.current_room = self.my_dungeon.room[self.my_player.current_room].north
-                self.join_leave_message(self.my_player, 'joined')
-                return self.my_dungeon.DisplayCurrentRoom(self.my_player)
-
-            if direction == 'east':
-                self.join_leave_message(self.my_player, 'left')
-                self.my_player.current_room = self.my_dungeon.room[self.my_player.current_room].east
-                self.join_leave_message(self.my_player, 'joined')
-                return self.my_dungeon.DisplayCurrentRoom(self.my_player)
-
-            if direction == 'south':
-                self.join_leave_message(self.my_player, 'left')
-                self.my_player.current_room = self.my_dungeon.room[self.my_player.current_room].south
-                self.join_leave_message(self.my_player, 'joined')
-                return self.my_dungeon.DisplayCurrentRoom(self.my_player)
-
-            if direction == 'west':
-                self.join_leave_message(self.my_player, 'left')
-                self.my_player.current_room = self.my_dungeon.room[self.my_player.current_room].west
-                self.join_leave_message(self.my_player, 'joined')
-                return self.my_dungeon.DisplayCurrentRoom(self.my_player)
-
-            if direction == 'up':
-                self.join_leave_message(self.my_player, 'left')
-                self.my_player.current_room = self.my_dungeon.room[self.my_player.current_room].up
-                self.join_leave_message(self.my_player, 'joined')
-                return self.my_dungeon.DisplayCurrentRoom(self.my_player)
-
-            if direction == 'down':
-                self.join_leave_message(self.my_player, 'left')
-                self.my_player.current_room = self.my_dungeon.room[self.my_player.current_room].down
-                self.join_leave_message(self.my_player, 'joined')
-                return self.my_dungeon.DisplayCurrentRoom(self.my_player)
+                return self.valid_move('north', self.my_player)
+            elif direction == 'east':
+                return self.valid_move('east', self.my_player)
+            elif direction == 'south':
+                return self.valid_move('south', self.my_player)
+            elif direction == 'west':
+                return self.valid_move('west', self.my_player)
+            elif direction == 'up':
+                return self.valid_move('up', self.my_player)
+            elif direction == 'down':
+                return self.valid_move('down', self.my_player)
         else:
-            return self.handleBadInput()
+            self.send_message(self.handleBadInput(), self.current_client)
 
     def start(self):
         self.change_state(In_game)

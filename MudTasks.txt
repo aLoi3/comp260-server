@@ -1,5 +1,12 @@
-* Find a way to display messages right away (MUD)
-* Fix client server relationship (glitch Adrian was talking about (was also in the Viva))
-* Send encrypted input to the server and decrypt it there?
+* Find a way to display messages right away (MUD) (DONE)
+* Fix client server relationship (glitch Adrian was talking about (was also in the Viva)) (Sometimes the client loses connection)
+* Send encrypted input to the server and decrypt it there? (TBD)
 - How can I get the same key that's generated in client's input?
 - Should it be in the client's input ?
+
+* Character selection (Maybe in database folder (find_contact))
+* Character creation
+* Character deletion (In database folder)
+* Add database with filled dungeon rooms
+
+getpass - to hide password
