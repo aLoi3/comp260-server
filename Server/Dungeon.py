@@ -9,30 +9,25 @@ class Dungeon:
 
     def Init(self):
         self.room["1-entrance"] = Room("1-entrance",
-                                       " You've decided to go on an adventure. \n "
-                                       " Luckily, first dungeon was nearby, which wasn't looking as dangerous as others were talking about. \n "
-                                       " So, there you are, at the entrance to a pyramid-like dungeon! \n "
-                                       " There is a sign reading - DO NOT ENTER - What's your next move? \n ",
+                                       " You've decided to go on an adventure. Luckily, first dungeon was nearby, which wasn't looking as dangerous as others were talking about. So, there you are, at the entrance to a pyramid-like dungeon! There is a sign reading - DO NOT ENTER - What's your next move? \n ",
                                        north="1-hall")
         self.room["1-hall"] = Room("1-hall",
-                                   " You've entered the dungeon. but suddenly, as soon as you've entered it, the doors behind you closed. \n What is you next move? \n ",
+                                   " You've entered the dungeon. but suddenly, as soon as you've entered it, the doors behind you closed. What is you next move? \n ",
                                    north="1-northHallway")
         self.room["1-northHallway"] = Room("1-northHallway",
                                            "In front of you is a narrow corridor going only forwards. \n ",
                                            north="1-branching")
         self.room["1-branching"] = Room("1-branching",
-                                        " You've encountered different ways to go. Every direction leads to a deep darkness of the dungeon where dangeour await you! \n ",
+                                        " You've encountered different ways to go. Every direction leads to a deep darkness of the dungeon where danger awaits you! \n ",
                                         east="1-branchingE", south="1-northHallway", west="1-branchingW")
         self.room["1-branchingE"] = Room("1-branchingE",
-                                         " Right is the right choice, huh? Well, that's your decision, after all... This dungeon is ever unpredictable, be very careful, traveller. I will support you anytime... maybe... "
-                                         " Actually... Go east from here *khm* There is no trap there, definitely *giggle* \n ",
+                                         " Right is the right choice, huh? Well, that's your decision, after all... This dungeon is ever unpredictable, be very careful, traveller. I will support you anytime... maybe... Actually... Go east from here *khm* There is no trap there, definitely *giggle* \n ",
                                          north="1-branchEN", east="1-branchEE", west="1-branching")
         self.room["1-branchingW"] = Room("1-branchingW",
                                          " Good choice, my friend. Always choose left if possible! Now, what about going left again?... \n ",
                                          north="1-branchWN", east="1-branching")
         self.room["1-branchWN"] = Room("1-branchWN",
-                                       " Are you stupid? I told you to go left, not right... There was no room to the left? SO WHAT? I DON'T CARE. You could've done something... "
-                                       " What do you mean nothing could be done? Oh right... I forgot... Our creator is way too lazy to make stuff *deep sigh*. Why did he even create us? Can you tell? \n ",
+                                       " Are you stupid? I told you to go left, not right... There was no room to the left? SO WHAT? I DON'T CARE. You could've done something... What do you mean nothing could be done? Oh right... I forgot... Our creator is way too lazy to make stuff *deep sigh*. Why did he even create us? Can you tell? \n ",
                                        east="1-branchWNE", south="1-branchingW")
         self.room["1-branchWNE"] = Room("1-branchWNE",
                                         " Hey, don't run from my question, you little prick... Oh look, a dead-end, what a disaster, huh! \n ",
@@ -50,12 +45,10 @@ class Dungeon:
                                         " Don't tell me you are still alive *inside scream*. That creator... Okay, let's forget about it. It's good you're still alive, otherwise it would've been too boring. \n ",
                                         south="1-branchEE", up="2-start2")
         self.room["2-start1"] = Room("2-start1",
-                                     " Wha... Oh, I see, you can climb as well, it's a pyramid after all where your goal is to get as high up as possible. Well, let's continue then, I guess. Nothing to see here. "
-                                     " Wanna warn you straight away, there is nowhere to go from now on, just because creator is la... *khm* I mean has way too much work to do. \n ",
+                                     " Wha... Oh, I see, you can climb as well, it's a pyramid after all where your goal is to get as high up as possible. Well, let's continue then, I guess. Nothing to see here. Wanna warn you straight away, there is nowhere to go from now on, just because creator is la... *khm* I mean has way too much work to do. \n ",
                                      down="1-branchWNE")
         self.room["2-start2"] = Room("2-start2",
-                                     " Yeah.. You are still alive, what a shame. I wanted to play with some other strangers that think they can find treasures here. But oh well, shall we continue then? "
-                                     " Oh right, there is no way from here. Just because creator, one word but says so much. \n",
+                                     " Yeah.. You are still alive, what a shame. I wanted to play with some other strangers that think they can find treasures here. But oh well, shall we continue then? Oh right, there is no way from here. Just because creator, one word but says so much. \n",
                                      down="1-branchEEN")
 
         self.currentRoom = "1-entrance"

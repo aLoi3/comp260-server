@@ -178,17 +178,17 @@ class Input:
 
         if self.my_dungeon.room[self.my_player.current_room].HasExit(direction):
             if direction == 'north':
-                return self.valid_move('north', self.my_player)
+                return self.valid_move(direction, self.my_player)
             elif direction == 'east':
-                return self.valid_move('east', self.my_player)
+                return self.valid_move(direction, self.my_player)
             elif direction == 'south':
-                return self.valid_move('south', self.my_player)
+                return self.valid_move(direction, self.my_player)
             elif direction == 'west':
-                return self.valid_move('west', self.my_player)
+                return self.valid_move(direction, self.my_player)
             elif direction == 'up':
-                return self.valid_move('up', self.my_player)
+                return self.valid_move(direction, self.my_player)
             elif direction == 'down':
-                return self.valid_move('down', self.my_player)
+                return self.valid_move(direction, self.my_player)
         else:
             self.send_message(self.handleBadInput(), self.current_client)
 
