@@ -10,11 +10,12 @@ In_register = 1
 In_Login = 2
 Logged_in = 3
 In_game = 4
+Character_creation = 5
 
 
 class Input:
     def __init__(self):
-        self.all_connected_clients = ''
+        self.all_connected_clients = {}
         self.current_client = ''
         self.current_state = Idle
         self.my_database = None
@@ -22,6 +23,8 @@ class Input:
         self.my_player = None
         self.split_input = ''
         self.command = ''
+        self.connected_username = ''
+        self.connected_player = ''
         self.packet_ID = 'PyramidMUD'
 
     # Function to check if there are players in the room
@@ -36,6 +39,16 @@ class Input:
         return clients_in_room
 
     def change_state(self, state):
+        message = ''
+
+        if state == Idle:
+            message = " Type 'Register' to create an account or 'Login' to login into your existing account \n"
+        elif state == Logged_in:
+            message = " Type 'Create' to create your character or 'Play' and your character name to start a game \n"
+
+        if message is not '':
+            self.send_message(message, self.current_client)
+
         self.current_state = state
 
     def send_message(self, message, client):
@@ -67,8 +80,7 @@ class Input:
 
         self.split_input = current_input.split()
         self.command = self.split_input[0].lower()
-
-        print(self.current_state)
+        message = ''
 
         if self.current_state == Idle:
             if self.command == "register":
@@ -78,57 +90,56 @@ class Input:
             else:
                 message = "Incorrect Input"
 
-            self.send_message(message, self.current_client)
+            #self.send_message(message, self.current_client)
 
         elif self.current_state == In_register:
-            # To:Do Allow only register here
-            print("In register lobby")
             message = self.in_register()
 
-            self.send_message(message, self.current_client)
+            #self.send_message(message, self.current_client)
 
         elif self.current_state == In_Login:
-            print("In login lobby")
-
             message = self.in_login()
 
-            self.send_message(message, self.current_client)
+            #self.send_message(message, self.current_client)
 
         elif self.current_state == Logged_in:
-            # To:Do: Allow only character chose here
-            print("In character lobby")
-
-            if self.command == "start":
-                message = self.start()
+            if self.command == "create":
+                message = self.create_character()
+            elif self.command == "play":
+                message = self.choose_character()
             else:
                 message = "Incorrect Input"
 
-            self.send_message(message, self.current_client)
+            #self.send_message(message, self.current_client)
 
         elif self.current_state == In_game:
             if self.command == "go":
                 message = self.move()
             elif self.command == "help":
                 message = self.help()
-            elif self.command == "name":
-                message = self.change_name()
+            #elif self.command == "name":
+            #    message = self.change_name()
             else:
                 message = "Incorrect Input"
 
-            self.send_message(message, self.current_client)
+            #self.send_message(message, self.current_client)
+
+        elif self.current_state == Character_creation:
+            message = self.character_creation()
 
         elif self.command == "exit":
             self.exit()
 
-        else:
-            self.send_message('Incorrect command', self.current_client)
+        #else:
+            #self.send_message('Incorrect command', self.current_client)
+
+        self.send_message(message, self.current_client)
 
     # Message to output whether the player has left or joined the room
     def join_leave_message(self, player, join_or_leave):
         clients_in_the_room = self.check_room_for_players(player)
         message_output = player.player_name + " has " + join_or_leave + " the room..."
         for client in clients_in_the_room:
-            #client.send(message_output.encode())
             self.send_message(message_output, client)
 
     def change_name(self):
@@ -139,11 +150,9 @@ class Input:
         # Chat messages
         message = self.my_player.player_name + ': ' + ' '.join(self.split_input)
         self_message = 'Your words: ' + ' '.join(self.split_input)
-        #self.current_client.send(self_message.encode())
         self.send_message(self_message, self.current_client)
         clients_in_room = self.check_room_for_players(self.my_player)
         for client in clients_in_room:
-            #client.send(message.encode())
             self.send_message(message, client)
         return
 
@@ -151,12 +160,12 @@ class Input:
         return self.print_help()
 
     def valid_move(self, direction, player):
-        current_room = self.my_database.get_current_room(player)
+        current_room = self.my_database.get_current_room(self.connected_player)
         connection = self.my_database.get_connection(direction, current_room)
 
-        if connection is not '':
+        if connection is not None:
             self.join_leave_message(player, 'left')
-            self.my_database.set_current_room(player, connection)
+            self.my_database.set_current_room(self.connected_player, connection)
             self.join_leave_message(player, 'joined')
             clients_in_room = self.check_room_for_players(player)
             reply_to_player = self.my_database.get_value('description', 'dungeon', 'name', connection)
@@ -168,7 +177,7 @@ class Input:
 
             return reply_to_player
         else:
-            return "There is not path this way! \n"
+            return "There is no path this way! \n"
 
     def move(self):
         if len(self.split_input) >= 2:
@@ -176,7 +185,8 @@ class Input:
         else:
             direction = ''
 
-        if self.my_dungeon.room[self.my_player.current_room].HasExit(direction):
+        current_room = self.my_database.get_current_room(self.connected_player)
+        if self.my_dungeon.room[current_room].HasExit(direction):
             if direction == 'north':
                 return self.valid_move(direction, self.my_player)
             elif direction == 'east':
@@ -193,18 +203,58 @@ class Input:
             self.send_message(self.handleBadInput(), self.current_client)
 
     def start(self):
+        current_room = self.my_database.get_current_room(self.split_input[1])
+        message = self.my_database.get_value('description', 'dungeon', 'name', current_room)
         self.change_state(In_game)
-        return self.my_dungeon.DisplayCurrentRoom(self.my_player)
+        return message
+
+    def create_character(self):
+        self.change_state(Character_creation)
+        return " What is your character's name going to be?"
+
+    def character_creation(self):
+        nickname = self.split_input[0]
+        is_name_taken = self.my_database.check_value(
+            'player_name',
+            'players',
+            'player_name',
+            nickname,
+            nickname
+        )
+        if is_name_taken:
+            message = " Player name is already taken"
+        else:
+            self.my_player.player_name = nickname
+            message = self.my_database.add_player(self.connected_username, "1-entrance", nickname)
+            self.change_state(Logged_in)
+
+        return message
+
+    def choose_character(self):
+        self.connected_player = self.my_database.get_value(
+            'player_name',
+            'players',
+            'owner_username',
+            self.connected_username
+        )
+        if len(self.connected_player) is not None:
+            if len(self.split_input) > 1:
+                if self.connected_player == self.split_input[1]:
+                    message = self.start()
+                else:
+                    message = " There is no such character with this name"
+            else:
+                message = " You haven't provided your character's name"
+        else:
+            message = " You cannot play a game without having a character, silly"
+
+        return message
 
     def register(self):
-        print("Changing the state to In_register")
         self.change_state(In_register)
-        print(self.current_state)
-        return " Write down your username and password to register"
+        return " Type your username and password to register \n"
 
     def in_register(self):
-        print("Write down your username and password")
-
         username = self.split_input[0]
         password = self.split_input[1]
 
@@ -225,14 +275,10 @@ class Input:
         return " Successfully registered"
 
     def login(self):
-        print("Changing the state to In_Login")
         self.change_state(In_Login)
-        print(self.current_state)
-        return " Write down your username and password to login"
+        return " Type your username and password to login \n"
 
     def in_login(self):
-        print("Write down your username and password")
-
         username = self.split_input[0]
         password = self.split_input[1]
 
@@ -247,9 +293,9 @@ class Input:
 
         if self.my_database.check_value("username", "users", "username", username, username) is True:
             if self.my_database.check_value("password", "users", "username", username, salted_password) is True:
-                # TO:DO Change the state to logged in state
+                self.connected_username = username
                 self.change_state(Logged_in)
-                return " Successfully logged in. \n Type 'Start' to start the game."
+                return " Successfully logged in. \n"
             else:
                 return " Password is incorrect. Try again"
         else:

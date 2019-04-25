@@ -1,5 +1,4 @@
 import sqlite3
-import hashlib
 
 
 class Database:
@@ -17,17 +16,23 @@ class Database:
         self.database.commit()
         print("Successfully added user")
 
-    def add_player(self, username, player_name):
-        cmd = '''INSERT INTO players (owner_username, player_name) values(?,?)'''
-        self.cursor.execute(cmd, (username, player_name))
+    def add_player(self, username, room, player_name):
+        cmd = '''INSERT INTO players (owner_username, current_room, player_name) values(?,?,?)'''
+        self.cursor.execute(cmd, (username, room, player_name))
         self.database.commit()
-        print("Successfully added player")
+        return " Successfully added player"
 
     def get_value(self, field_to_check, table, query_field, query_value):
         cmd = "SELECT " + field_to_check + " FROM " + table + " WHERE " + query_field + " =?"
         self.cursor.execute(cmd, (query_value, ))
         result = self.cursor.fetchone()
         return result[0]
+
+    def get_all_values(self, field_to_check, table, query_field, query_value):
+        cmd = "SELECT " + field_to_check + " FROM " + table + " WHERE " + query_field + " =?"
+        self.cursor.execute(cmd, (query_value, ))
+        result = self.cursor.fetchall()
+        return result
 
     def check_value(self, field_to_check, table, query_field, query_value, value_to_check):
         cmd = "SELECT " + field_to_check + " FROM " + table + " WHERE " + query_field + " =?"

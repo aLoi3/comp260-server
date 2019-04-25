@@ -59,7 +59,7 @@ class Client:
                     self.is_connected = True
                     self.input_manager.my_socket = self.my_socket
                     self.my_window.textEdit.append("Connected to Server \n")
-                    self.my_window.textEdit.append(" Type 'Register' to create and account or "
+                    self.my_window.textEdit.append(" Type 'Register' to create an account or "
                                                    "'Login' to login into the game. \n")
                     time.sleep(2)
 
