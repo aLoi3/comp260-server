@@ -4,11 +4,13 @@ import json
 import sys
 import cryptography
 
-# ToDo: Implement a back function;
+# ToDo: Implement a back function; (DONE)
 # ToDo: Display exits; (DONE)
 # ToDo: Exit the game;
 # ToDo: Display messages in correct order; (DONE)
-# ToDo: Change the way I set the current player
+# ToDo: Change the way I set the current player (In register and character selection)
+# ToDo: Support multiple clients
+# ToDo: Fix chat system (DONE)
 
 Idle = 0
 In_register = 1
@@ -33,25 +35,14 @@ class Input:
         self.connected_player = ''
         self.packet_ID = 'PyramidMUD'
 
-    # Function to check if there are players in the room
-    def check_room_for_players(self, my_player):
-        clients_in_room = {}
-        for client in self.all_connected_clients:
-            new_player = self.all_connected_clients.get(client)
-            if my_player.current_room is new_player.current_room:
-                if client is not self.current_client:
-                    clients_in_room[client] = 0
-
-        return clients_in_room
-
 # =================== STATE =================== #
     def change_state(self, state):
         message = ''
 
         if state == Idle:
-            message = "\n Type 'Register' to create an account or 'Login' to login into your existing account \n"
+            message = " Type 'Register' to create an account or 'Login' to login into your existing account \n"
         elif state == Logged_in:
-            message = "\n Type 'Create' to create your character or 'Play' to start a game \n"
+            message = " Type 'Create' to create your character or 'Play' to start a game \n"
 
         self.current_state = state
         return message
@@ -66,6 +57,17 @@ class Input:
             client.send(self.packet_ID.encode())
             client.send(header)
             client.send(json_packet.encode())
+
+    # Function to check if there are players in the room
+    def check_room_for_players(self, my_player):
+        clients_in_room = {}
+        for client in self.all_connected_clients:
+            new_player = self.all_connected_clients.get(client)
+            if my_player.current_room is new_player.current_room:
+                if client is not self.current_client:
+                    clients_in_room[client] = 0
+
+        return clients_in_room
 
     def chat_message(self):
         # Chat messages
@@ -110,6 +112,8 @@ class Input:
                 message = self.register()
             elif self.command == "login":
                 message = self.login()
+            elif self.command == "exit":
+                message = "You cannot escape this! MUAHAHAHAHA"
             else:
                 message = "Incorrect Input"
 
@@ -123,12 +127,14 @@ class Input:
             if self.command == "create":
                 message = self.create_character()
             elif self.command == "play":
-                message = self.select_character()
+                message = self.display_characters()
+            elif self.command == "exit":
+                message = self.change_state(Idle)
             else:
                 message = "Incorrect Input"
 
         elif self.current_state == Character_selection:
-            message = self.play_character()
+            message = self.choose_character()
 
         elif self.current_state == In_game:
             if self.command == "go":
@@ -136,8 +142,10 @@ class Input:
                 message += "\n"
             elif self.command == "help":
                 message = self.SEND_HELP()
+            elif self.command == "exit":
+                message = self.change_state(Logged_in)
             else:
-                message = "Incorrect Input"
+                self.chat_message()
 
         elif self.current_state == Character_creation:
             message = self.character_creation()
@@ -224,6 +232,10 @@ class Input:
         return " What is your character's name going to be? \n"
 
     def character_creation(self):
+        if self.command == "back":
+            message = self.change_state(Logged_in)
+            return message
+
         nickname = self.split_input[0]
         is_name_taken = self.my_database.check_value(
             'player_name',
@@ -235,7 +247,6 @@ class Input:
         if is_name_taken is True:
             message = " Player name is already taken \n"
         else:
-            self.my_player.player_name = nickname
             self.my_database.add_player(self.connected_username, "1-entrance", nickname)
             message = " " + nickname + " has been successfully created! \n"
             message += self.change_state(Logged_in)
@@ -243,7 +254,7 @@ class Input:
         return message
 
 # =================== CHARACTER SELECTION =================== #
-    def select_character(self):
+    def display_characters(self):
         owned_player = self.my_database.get_all_values(
             'player_name',
             'players',
@@ -265,7 +276,11 @@ class Input:
 
         return message
 
-    def play_character(self):
+    def choose_character(self):
+        if self.command == "back":
+            message = self.change_state(Logged_in)
+            return message
+
         message = ''
 
         owned_player = self.my_database.get_all_values(
@@ -291,6 +306,10 @@ class Input:
         return " Type your username and password to register \n"
 
     def in_register(self):
+        if self.command == "back":
+            message = self.change_state(Idle)
+            return message
+
         username = self.split_input[0]
         password = self.split_input[1]
 
@@ -316,6 +335,10 @@ class Input:
         return " Type your username and password to login \n"
 
     def in_login(self):
+        if self.command == "back":
+            message = self.change_state(Idle)
+            return message
+
         username = self.split_input[0]
         password = self.split_input[1]
 

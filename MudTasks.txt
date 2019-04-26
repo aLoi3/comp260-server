@@ -4,9 +4,9 @@
 - How can I get the same key that's generated in client's input?
 - Should it be in the client's input ?
 
-* Character selection (Maybe in database folder (find_contact))
-* Character creation
+* Character selection (Maybe in database folder (find_contact)) (DONE)
+* Character creation (DONE)
 * Character deletion (In database folder)
-* Add database with filled dungeon rooms
+* Add database with filled dungeon rooms (DONE)
 
 getpass - to hide password
