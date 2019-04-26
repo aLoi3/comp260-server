@@ -20,7 +20,7 @@ class Database:
         cmd = '''INSERT INTO players (owner_username, current_room, player_name) values(?,?,?)'''
         self.cursor.execute(cmd, (username, room, player_name))
         self.database.commit()
-        return " Successfully added player"
+        print("Successfully added player")
 
     def get_value(self, field_to_check, table, query_field, query_value):
         cmd = "SELECT " + field_to_check + " FROM " + table + " WHERE " + query_field + " =?"

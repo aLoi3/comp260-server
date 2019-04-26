@@ -31,7 +31,6 @@ class Client:
         while self.is_running:
             if self.is_connected:
                 try:
-                    #self.my_window.message_queue.put(self.my_socket.recv(4096).decode("utf-8"))
                     packet_id = self.my_socket.recv(10)
 
                     if packet_id.decode('utf-8') == 'PyramidMUD':
@@ -69,7 +68,6 @@ class Client:
                     time.sleep(2)
 
     def main(self):
-
         self.my_connection_thread = threading.Thread(target=self.connect_thread)
         self.my_connection_thread.start()
 
