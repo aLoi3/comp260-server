@@ -55,6 +55,7 @@ class Client:
 
                 try:
                     self.my_socket.connect(("127.0.0.1", 8222))
+                    #  self.my_socket.connect(("46.101.56.200", 9284))
                     self.is_connected = True
                     self.input_manager.my_socket = self.my_socket
                     self.my_window.textEdit.append("Connected to Server \n")

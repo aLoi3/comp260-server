@@ -9,8 +9,10 @@ import cryptography
 # ToDo: Exit the game;
 # ToDo: Display messages in correct order; (DONE)
 # ToDo: Change the way I set the current player (In register and character selection)
-# ToDo: Support multiple clients
+# ToDo: Support multiple clients - There's only one client that can play the game
 # ToDo: Fix chat system (DONE)
+# ToDo: Crashes when not providing a password for register (DONE)
+# ToDo: Data Encryption
 
 Idle = 0
 In_register = 1
@@ -40,9 +42,11 @@ class Input:
         message = ''
 
         if state == Idle:
-            message = " Type 'Register' to create an account or 'Login' to login into your existing account \n"
+            message = " Type 'Register' to create an account or 'Login' to login into your existing account \n" \
+                      " Type 'Exit' to try to escape from this game... \n"
         elif state == Logged_in:
-            message = " Type 'Create' to create your character or 'Play' to start a game \n"
+            message = " Type 'Create' to create your character or 'Play' to start a game \n" \
+                      " Type 'Exit' to try to escape from this game... \n"
 
         self.current_state = state
         return message
@@ -92,6 +96,7 @@ class Input:
                " That's what I think, at least. And please, read me as if it was a spooky ghost, deal? BOOooOOoo \n" \
                " Nevertheless, these are your possible commands: \n" \
                " go <direction> \n Directions: NORTH, SOUTH, EAST, WEST, UP, DOWN \n" \
+               " exit - to exit the game \n" \
                " NOTE: If you are not using any of the commands, it will be a normal text and" \
                " everyone in the room will hear it. \n" \
 
@@ -139,7 +144,6 @@ class Input:
         elif self.current_state == In_game:
             if self.command == "go":
                 message = self.move()
-                message += "\n"
             elif self.command == "help":
                 message = self.SEND_HELP()
             elif self.command == "exit":
@@ -175,12 +179,12 @@ class Input:
 
 # =================== MOVEMENT =================== #
     def valid_move(self, direction):
-        current_room = self.my_database.get_current_room(self.connected_player)
+        current_room = self.my_database.get_current_room(self.my_player)
         connection = self.my_database.get_connection(direction, current_room)
 
         if connection is not None:
             self.join_leave_message(self.my_player, 'left')
-            self.my_database.set_current_room(self.connected_player, connection)
+            self.my_database.set_current_room(self.my_player, connection)
             self.join_leave_message(self.my_player, 'joined')
             clients_in_room = self.check_room_for_players(self.my_player)
             reply_to_player = self.my_database.get_value('description', 'dungeon', 'name', connection)
@@ -201,7 +205,7 @@ class Input:
         else:
             direction = ''
 
-        current_room = self.my_database.get_current_room(self.connected_player)
+        current_room = self.my_database.get_current_room(self.my_player)
         if self.my_dungeon.room[current_room].HasExit(direction):
             if direction == 'north':
                 return self.valid_move(direction)
@@ -215,12 +219,14 @@ class Input:
                 return self.valid_move(direction)
             elif direction == 'down':
                 return self.valid_move(direction)
+            else:
+                self.output_message(self.handleBadInput(), self.current_client)
         else:
             self.output_message(self.handleBadInput(), self.current_client)
 
 # =================== START =================== #
     def start(self):
-        current_room = self.my_database.get_current_room(self.connected_player)
+        current_room = self.my_database.get_current_room(self.my_player)
         message = self.my_database.get_value('description', 'dungeon', 'name', current_room)
         message += self.display_exits(current_room)
         self.change_state(In_game)
@@ -229,7 +235,8 @@ class Input:
 # =================== CHARACTER CREATION =================== #
     def create_character(self):
         self.change_state(Character_creation)
-        return " What is your character's name going to be? \n"
+        return " What is your character's name going to be? \n" \
+               " Note: if you want to get back to previous state, type 'Back' \n"
 
     def character_creation(self):
         if self.command == "back":
@@ -268,7 +275,8 @@ class Input:
                 message += owned_player[index][0]
                 if not index+1 == len(owned_player):
                     message += ", "
-            message += ". \n Type your character's name to start playing him. \n"
+            message += ". \n Type your character's name to start playing him. \n" \
+                       " Note: if you want to get back to previous state, type 'Back' \n"
             self.change_state(Character_selection)
         else:
             message = " You cannot play a game without having a character, silly. Create a character first! \n"
@@ -293,7 +301,7 @@ class Input:
         if len(owned_player) is not 0:
             for index, val in enumerate(owned_player):
                 if owned_player[index][0] == self.split_input[0]:
-                    self.connected_player = owned_player[index][0]
+                    self.my_player = owned_player[index][0]
                     message = self.start()
         else:
             message = " You cannot play a game without having a character, silly \n"
@@ -303,15 +311,19 @@ class Input:
 # =================== REGISTRATION =================== #
     def register(self):
         self.change_state(In_register)
-        return " Type your username and password to register \n"
+        return " Type your username and password to register \n" \
+               " Note: if you want to get back to previous state, type 'Back' \n"
 
     def in_register(self):
         if self.command == "back":
             message = self.change_state(Idle)
             return message
 
-        username = self.split_input[0]
-        password = self.split_input[1]
+        if len(self.split_input) >= 2:
+            username = self.split_input[0]
+            password = self.split_input[1]
+        else:
+            return "Please provide username and password separated with space \n"
 
         salt = hashlib.md5()
         salt.update(bytes('salty mcsalt-salt', 'utf-8'))
@@ -332,15 +344,19 @@ class Input:
 # =================== LOGIN =================== #
     def login(self):
         self.change_state(In_Login)
-        return " Type your username and password to login \n"
+        return " Type your username and password to login \n" \
+               " Note: if you want to get back to previous state, type 'Back' \n"
 
     def in_login(self):
         if self.command == "back":
             message = self.change_state(Idle)
             return message
 
-        username = self.split_input[0]
-        password = self.split_input[1]
+        if len(self.split_input) >= 2:
+            username = self.split_input[0]
+            password = self.split_input[1]
+        else:
+            return "Please provide username and password separated with space \n"
 
         if self.my_database.check_value("username", "users", "username", username, username) is True:
             salt = self.my_database.get_value("salt", "users", "username", username)

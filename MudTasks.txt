@@ -8,5 +8,7 @@
 * Character creation (DONE)
 * Character deletion (In database folder)
 * Add database with filled dungeon rooms (DONE)
+* Input - line 142  (message += "\n" TypeError: unsupported operand type(s) for +=: 'NoneType' and 'str')
+
 
 getpass - to hide password

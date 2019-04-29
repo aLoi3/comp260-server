@@ -49,6 +49,7 @@ if __name__ == '__main__':
 
     my_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     my_socket.bind(("127.0.0.1", 8222))
+    #  my_socket.bind(("46.101.56.200", 9284))
     my_socket.listen(5)
 
     my_dungeon = Dungeon.Dungeon()
