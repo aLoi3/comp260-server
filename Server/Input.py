@@ -11,11 +11,11 @@ from Crypto.Util.Padding import pad
 # ToDo: Display exits; (DONE)
 # ToDo: Exit the game;
 # ToDo: Display messages in correct order; (DONE)
-# ToDo: Change the way I set the current player (In register and character selection)
-# ToDo: Support multiple clients - There's only one client that can play the game
+# ToDo: Change the way I set the current player (In register and character selection) (DONE)
+# ToDo: Support multiple clients - There's only one client that can play the game  - It IS supporting, but needs fixing
 # ToDo: Fix chat system (DONE)
 # ToDo: Crashes when not providing a password for register (DONE)
-# ToDo: Data Encryption
+# ToDo: Data Encryption (DONE)
 
 Idle = 0
 In_register = 1
@@ -143,7 +143,7 @@ class Input:
         self.current_client = client
         self.my_database = database
         self.my_dungeon = dungeon
-        # self.all_connected_clients.update(client)
+        # self.all_connected_clients[client] = client
         self.my_player = self.all_connected_clients.get(client)
 
         self.split_input = current_input.split()
@@ -151,6 +151,10 @@ class Input:
         message = ''
 
         if self.current_state == Idle:
+            for client in self.all_connected_clients:
+                if client is not current_input:
+                    self.all_connected_clients[client] = client
+
             if self.command == "register":
                 message = self.register()
             elif self.command == "login":
