@@ -98,30 +98,32 @@ class Input:
             client.send(json_message.encode())
 
     # Function to check if there are players in the room
-    def check_room_for_players(self, my_player):
+    def check_room_for_players(self):
         clients_in_room = {}
-        for client in self.all_connected_clients:
-            new_player = self.all_connected_clients.get(client)
-            if my_player.current_room is new_player.current_room:
-                if client is not self.current_client:
-                    clients_in_room[client] = 0
+        for other_client in self.all_connected_clients:
+            other_player = self.all_connected_clients.get(other_client)
+            if self.my_database.get_current_room(self.my_player) == \
+                    self.my_database.get_current_room(other_player):
+                if other_client is not self.current_client:
+                    clients_in_room[other_client] = 0
 
         return clients_in_room
 
     def chat_message(self):
         # Chat messages
-        message = self.my_player.player_name + ': ' + ' '.join(self.split_input)
+        message = self.my_player + ': '
+        message += ''.join(self.split_input)
         self_message = 'Your words: ' + ' '.join(self.split_input)
         self.output_message(self_message, self.current_client)
-        clients_in_room = self.check_room_for_players(self.my_player)
+        clients_in_room = self.check_room_for_players()
         for client in clients_in_room:
             self.output_message(message, client)
         return
 
     # Message to output whether the player has left or joined the room
     def join_leave_message(self, player, join_or_leave):
-        clients_in_the_room = self.check_room_for_players(player)
-        message_output = player.player_name + " has " + join_or_leave + " the room..."
+        clients_in_the_room = self.check_room_for_players()
+        message_output = player + " has " + join_or_leave + " the room..."
         for client in clients_in_the_room:
             self.output_message(message_output, client)
 
@@ -141,6 +143,7 @@ class Input:
         self.current_client = client
         self.my_database = database
         self.my_dungeon = dungeon
+        # self.all_connected_clients.update(client)
         self.my_player = self.all_connected_clients.get(client)
 
         self.split_input = current_input.split()
@@ -221,7 +224,7 @@ class Input:
             self.join_leave_message(self.my_player, 'left')
             self.my_database.set_current_room(self.my_player, connection)
             self.join_leave_message(self.my_player, 'joined')
-            clients_in_room = self.check_room_for_players(self.my_player)
+            clients_in_room = self.check_room_for_players()
             reply_to_player = self.my_database.get_value('description', 'dungeon', 'name', connection)
             reply_to_player += self.display_exits(connection)
             if clients_in_room:
@@ -240,22 +243,18 @@ class Input:
         else:
             direction = ''
 
-        current_room = self.my_database.get_current_room(self.my_player)
-        if self.my_dungeon.room[current_room].HasExit(direction):
-            if direction == 'north':
-                return self.valid_move(direction)
-            elif direction == 'east':
-                return self.valid_move(direction)
-            elif direction == 'south':
-                return self.valid_move(direction)
-            elif direction == 'west':
-                return self.valid_move(direction)
-            elif direction == 'up':
-                return self.valid_move(direction)
-            elif direction == 'down':
-                return self.valid_move(direction)
-            else:
-                self.output_message(self.handleBadInput(), self.current_client)
+        if direction == 'north':
+            return self.valid_move(direction)
+        elif direction == 'east':
+            return self.valid_move(direction)
+        elif direction == 'south':
+            return self.valid_move(direction)
+        elif direction == 'west':
+            return self.valid_move(direction)
+        elif direction == 'up':
+            return self.valid_move(direction)
+        elif direction == 'down':
+            return self.valid_move(direction)
         else:
             self.output_message(self.handleBadInput(), self.current_client)
 
@@ -289,7 +288,7 @@ class Input:
         if is_name_taken is True:
             message = " Player name is already taken \n"
         else:
-            self.my_database.add_player(self.connected_username, "1-entrance", nickname)
+            self.my_database.add_player(self.my_player, "1-entrance", nickname)
             message = " " + nickname + " has been successfully created! \n"
             message += self.change_state(Logged_in)
 
@@ -301,7 +300,7 @@ class Input:
             'player_name',
             'players',
             'owner_username',
-            self.connected_username
+            self.my_player
         )
 
         if len(owned_player) is not 0:
@@ -325,21 +324,35 @@ class Input:
             return message
 
         message = ''
+        player_is_owned = False
 
         owned_player = self.my_database.get_all_values(
             'player_name',
             'players',
             'owner_username',
-            self.connected_username
+            self.my_player  # connected_username
         )
 
         if len(owned_player) is not 0:
             for index, val in enumerate(owned_player):
                 if owned_player[index][0] == self.split_input[0]:
-                    self.my_player = owned_player[index][0]
-                    message = self.start()
+                    player_is_owned = True
+                    # self.my_player = owned_player[index][0]
+                    # message = self.start()
         else:
             message = " You cannot play a game without having a character, silly \n"
+
+        if player_is_owned:
+            for client in self.all_connected_clients:
+                self.all_connected_clients[client] = self.split_input[0]
+                self.my_player = self.split_input[0]
+                self.clients_play_area.append(self.current_client)
+                self.clients_login_area.remove(self.current_client)
+
+            message = ' Logged in as ' + self.split_input[0] + ' \n'
+            message += self.start()
+        else:
+            message = ' You cannot play a character you do not own \n'
 
         return message
 
@@ -355,7 +368,7 @@ class Input:
             return message
 
         if len(self.split_input) >= 2:
-            username = self.split_input[0]
+            username = self.split_input[0].upper()
             password = self.split_input[1]
         else:
             return "Please provide username and password separated with space \n"
@@ -383,34 +396,38 @@ class Input:
                " Note: if you want to get back to previous state, type 'Back' \n"
 
     def in_login(self):
-        if self.command == "back":
-            message = self.change_state(Idle)
-            return message
+        for client in self.all_connected_clients:
+            if client in self.clients_login_area:
+                if self.command == "back":
+                    message = self.change_state(Idle)
+                    return message
 
-        if len(self.split_input) >= 2:
-            username = self.split_input[0]
-            password = self.split_input[1]
-        else:
-            return "Please provide username and password separated with space \n"
+                if len(self.split_input) >= 2:
+                    username = self.split_input[0].upper()
+                    password = self.split_input[1]
+                else:
+                    return "Please provide username and password separated with space \n"
 
-        if self.my_database.check_value("username", "users", "username", username, username) is True:
-            salt = self.my_database.get_value("salt", "users", "username", username)
+                if self.my_database.check_value("username", "users", "username", username, username) is True:
+                    salt = self.my_database.get_value("salt", "users", "username", username)
 
-            simple_hash = hashlib.md5()
-            simple_hash.update(bytes(password + salt, 'utf-8'))
-            salted_password = simple_hash.hexdigest()
-        else:
-            salted_password = ''
+                    simple_hash = hashlib.md5()
+                    simple_hash.update(bytes(password + salt, 'utf-8'))
+                    salted_password = simple_hash.hexdigest()
+                else:
+                    salted_password = ''
 
-        if self.my_database.check_value("username", "users", "username", username, username) is True:
-            if self.my_database.check_value("password", "users", "username", username, salted_password) is True:
-                self.connected_username = username
-                message = self.change_state(Logged_in)
-                return " Successfully logged in. \n" + message
-            else:
-                return " Password is incorrect. Try again \n"
-        else:
-            return " Username is incorrect. Try again \n"
+                if self.my_database.check_value("username", "users", "username", username, username) is True:
+                    if self.my_database.check_value("password", "users", "username", username, salted_password) is True:
+                        # self.connected_username = username
+                        self.all_connected_clients[client] = username
+                        self.logged_in_users[client] = self.my_player
+                        message = self.change_state(Logged_in)
+                        return " Successfully logged in. \n" + message
+                    else:
+                        return " Password is incorrect. Try again \n"
+                else:
+                    return " Username is incorrect. Try again \n"
 
 # =================== RUN AWAY =================== #
     def exit(self):
