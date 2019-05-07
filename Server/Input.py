@@ -1,8 +1,11 @@
-import sqlite3
 import hashlib
 import json
-import sys
-import cryptography
+
+from base64 import b64encode
+
+from Crypto.Cipher import AES
+from Crypto.Util.Padding import pad
+
 
 # ToDo: Implement a back function; (DONE)
 # ToDo: Display exits; (DONE)
@@ -36,6 +39,11 @@ class Input:
         self.connected_username = ''
         self.connected_player = ''
         self.packet_ID = 'PyramidMUD'
+        self.clients_login_area = []
+        self.clients_play_area = []
+        self.logged_in_users = {}
+        self.setup_packet_id = 'SettingUp!'
+        self.encryption_key = ''
 
 # =================== STATE =================== #
     def change_state(self, state):
@@ -51,16 +59,43 @@ class Input:
         self.current_state = state
         return message
 
-# =================== MESSAGE =================== #
-    def output_message(self, message, client):
-        dictionary = {"message": message}
-        json_packet = json.dumps(dictionary)
+# =================== ENCRYPTION MESSAGE =================== #
+    def add_client_to_login_area(self, client):
+        self.clients_login_area.append(client)
+
+    def clear_client_from_lists(self, client):
+        if client in self.clients_login_area:
+            self.clients_login_area.remove(client)
+        if client in self.clients_play_area:
+            self.clients_play_area.remove(client)
+        if client in self.logged_in_users:
+            del self.logged_in_users[client]
+
+    def send_setup_info(self, key, client):
+        key = b64encode(key).decode('utf-8')
+        my_dict = {'key': key}
+        json_packet = json.dumps(my_dict)
         header = len(json_packet).to_bytes(2, byteorder='little')
 
         if self.current_client is not None:
-            client.send(self.packet_ID.encode())
+            client.send(self.setup_packet_id.encode())
             client.send(header)
             client.send(json_packet.encode())
+
+# =================== MESSAGE =================== #
+    def output_message(self, message, client):
+        cipher = AES.new(self.encryption_key, AES.MODE_CBC)
+        cipher_text_bytes = cipher.encrypt(pad(message.encode('utf-8'), AES.block_size))
+        iv = b64encode(cipher.iv).decode('utf-8')
+        cipher_text = b64encode(cipher_text_bytes).decode('utf-8')
+        json_message = json.dumps({'iv': iv, 'cipher_text': cipher_text})
+
+        header = len(json_message).to_bytes(2, byteorder='little')
+
+        if client is not None:
+            client.send(self.packet_ID.encode())
+            client.send(header)
+            client.send(json_message.encode())
 
     # Function to check if there are players in the room
     def check_room_for_players(self, my_player):
@@ -380,7 +415,7 @@ class Input:
 # =================== RUN AWAY =================== #
     def exit(self):
         # ToDo: Implement exit here
-        print("Exiting... ")
+        return
         #sys.exit(0)
 
 # =================== FOR NO REASON =================== #

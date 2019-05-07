@@ -7,6 +7,11 @@ import threading
 import time
 import json
 
+from base64 import b64decode
+
+from Crypto.Cipher import AES
+from Crypto.Util.Padding import unpad
+
 from PyQt5.QtWidgets import QApplication
 
 
@@ -37,10 +42,24 @@ class Client:
                         payload_size = int.from_bytes(self.my_socket.recv(2), 'little')
                         payload_data = self.my_socket.recv(payload_size)
                         data = json.loads(payload_data)
-                        self.my_window.message_queue.put(data['message'])
+                        iv = b64decode(data['iv'])
+                        cipher_text = b64decode(data['cipher_text'])
 
-                    else:
-                        self.my_window.message_queue.put("Invalid Packet")
+                        byte_key = self.input_manager.encryption_key.encode('utf-8')
+                        byte_key = b64decode(byte_key)
+
+                        cipher = AES.new(byte_key, AES.MODE_CBC, iv)
+                        decrypted_message = unpad(cipher.decrypt(cipher_text), AES.block_size)
+
+                        self.my_window.message_queue.put(decrypted_message.decode('utf-8'))
+
+                    elif packet_id.decode('utf-8') == 'SettingUp!':
+                        payload_size = int.from_bytes(self.my_socket.recv(2), 'little')
+                        payload_data = self.my_socket.recv(payload_size)
+
+                        key = json.loads(payload_data)
+                        self.input_manager.encryption_key = key['key']
+                        # self.my_window.message_queue.put("Invalid Packet")
                 except socket.error:
                     self.my_socket = None
                     self.is_connected = False
