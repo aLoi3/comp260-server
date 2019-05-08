@@ -14,6 +14,8 @@ from Crypto.Util.Padding import unpad
 
 from PyQt5.QtWidgets import QApplication
 
+Local_Host = False
+
 
 class Client:
 
@@ -59,7 +61,6 @@ class Client:
 
                         key = json.loads(payload_data)
                         self.input_manager.encryption_key = key['key']
-                        # self.my_window.message_queue.put("Invalid Packet")
                 except socket.error:
                     self.my_socket = None
                     self.is_connected = False
@@ -73,8 +74,11 @@ class Client:
                     self.my_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
                 try:
-                    self.my_socket.connect(("127.0.0.1", 8222))
-                    #  self.my_socket.connect(("46.101.56.200", 9284))
+                    if Local_Host:
+                        self.my_socket.connect(("127.0.0.1", 8222))
+                    else:
+                        self.my_socket.connect(("46.101.56.200", 9284))
+
                     self.is_connected = True
                     self.input_manager.my_socket = self.my_socket
                     self.my_window.textEdit.append("Connected to Server \n")

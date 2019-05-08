@@ -1,4 +1,3 @@
-import bcrypt
 import json
 
 from base64 import b64encode

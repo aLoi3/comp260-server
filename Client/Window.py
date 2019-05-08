@@ -1,8 +1,6 @@
 from PyQt5 import QtWidgets, uic, QtCore
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QApplication
 from queue import *
-import sys
 import os
 
 qtCreatorFile = os.path.dirname(os.path.abspath(__file__))

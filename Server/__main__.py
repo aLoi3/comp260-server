@@ -11,8 +11,6 @@ from Crypto.Util.Padding import unpad
 from Crypto.Random import get_random_bytes
 
 import Input
-import Dungeon
-import Player
 import Database
 
 encryption_key = get_random_bytes(16)
@@ -20,6 +18,8 @@ clients = {}
 clients_lock = threading.Lock()
 lost_clients = []
 message_queue = Queue()
+
+Local_host = False
 
 
 def receive_thread(client_socket):
@@ -69,13 +69,14 @@ if __name__ == '__main__':
     is_connected = False
 
     my_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    my_socket.bind(("127.0.0.1", 8222))
-    #  my_socket.bind(("46.101.56.200", 9284))
+
+    if Local_host:
+        my_socket.bind(("127.0.0.1", 8222))
+    else:
+        my_socket.bind(("46.101.56.200", 9284))
+
     my_socket.listen(5)
 
-    my_dungeon = Dungeon.Dungeon()
-    # my_dungeon.Init()
-    # my_player = Player.Player(my_dungeon, '1-entrance')
     input_manager = Input.Input()
     input_manager.encryption_key = encryption_key
 
@@ -95,7 +96,6 @@ if __name__ == '__main__':
                 client_reply = input_manager.player_input(
                     client_and_message[1],
                     client_and_message[0],
-                    my_dungeon,
                     my_database
                 )
                 if client_reply is not None:
