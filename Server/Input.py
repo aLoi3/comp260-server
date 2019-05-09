@@ -6,17 +6,6 @@ from base64 import b64encode
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
 
-
-# ToDo: Implement a back function; (DONE)
-# ToDo: Display exits; (DONE)
-# ToDo: Exit the game;
-# ToDo: Display messages in correct order; (DONE)
-# ToDo: Change the way I set the current player (In register and character selection) (DONE)
-# ToDo: Support multiple clients - There's only one client that can play the game  - It IS supporting, but needs fixing
-# ToDo: Fix chat system (DONE)
-# ToDo: Crashes when not providing a password for register (DONE)
-# ToDo: Data Encryption (DONE)
-
 Idle = 0
 In_register = 1
 In_Login = 2
@@ -46,9 +35,26 @@ class Input:
         message = ''
 
         if state == Idle:
+            for client1 in list(self.logged_in_users):
+                if client1 is client:
+                    self.logged_in_users.pop(client)
+                    self.clients_login_area.append(client)
+
             message = " Type 'Register' to create an account or 'Login' to login into your existing account \n" \
                       " Type 'Exit' to try to escape from this game... \n"
+
         elif state == Logged_in:
+            for client1 in list(self.logged_in_players):
+                if client1 is client:
+                    username = self.my_database.get_value(
+                        "owner_username",
+                        "players",
+                        "player_name",
+                        self.logged_in_players.get(client)
+                    )
+                    self.logged_in_players.pop(client)
+                    self.logged_in_users[client] = username
+
             message = " Type 'Create' to create your character or 'Play' to start a game \n" \
                       " Type 'Exit' to try to escape from this game... \n"
 
@@ -157,11 +163,9 @@ class Input:
                     else:
                         self.chat_message(client)
 
-                if self.command == "exit":
-                    message = self.exit()
-
                 if message is not None:
                     self.output_message(message, client)
+            return
 
         for client1 in list(self.logged_in_users):
             if client1 is client:
@@ -173,7 +177,7 @@ class Input:
                     elif self.command == "exit":
                         message = self.change_state(Idle, client)
                     else:
-                        message = "Incorrect Input"
+                        message = "Incorrect Input \n"
 
                 elif self.current_state.get(client) == Character_selection:
                     message = self.choose_character(client)
@@ -183,6 +187,7 @@ class Input:
 
                 if message is not None:
                     self.output_message(message, client)
+            return
 
         for client1 in list(self.clients_login_area):
             if client1 is client:
@@ -194,7 +199,7 @@ class Input:
                     elif self.command == "exit":
                         message = "You cannot escape this! MUAHAHAHAHA"
                     else:
-                        message = "Incorrect Input"
+                        message = "Incorrect Input \n"
 
                 elif self.current_state.get(client) == In_register:
                     message = self.in_register(client)
@@ -204,6 +209,7 @@ class Input:
 
                 if message is not None:
                     self.output_message(message, client)
+            return
 
 # =================== LOST IN ACTION =================== #
     def change_name(self):
@@ -310,7 +316,7 @@ class Input:
             'player_name',
             'players',
             'owner_username',
-            self.logged_in_users.get(client)  # MAYBE ????
+            self.logged_in_users.get(client)
         )
 
         if len(owned_player) is not 0:
@@ -372,6 +378,9 @@ class Input:
         else:
             return "Please provide username and password separated with space \n"
 
+        if self.my_database.check_value("username", "users", "username", username, username) is True:
+            return " This username has already been taken. Use another one. \n"
+
         salt = hashlib.md5()
         salt.update(bytes('salty mcsalt-salt', 'utf-8'))
 
@@ -428,7 +437,7 @@ class Input:
 # =================== RUN AWAY =================== #
     def exit(self):
         # ToDo: Implement exit here
-        return "You cannot escape it now... HAHAHAHA"
+        return "You cannot escape it now... HAHAHAHA \n"
 
 # =================== FOR NO REASON =================== #
     # Message to output if the player chooses unavailable direction to go

@@ -14,7 +14,7 @@ from Crypto.Util.Padding import unpad
 
 from PyQt5.QtWidgets import QApplication
 
-Local_Host = False
+Local_Host = True
 
 
 class Client:

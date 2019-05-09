@@ -19,7 +19,7 @@ clients_lock = threading.Lock()
 lost_clients = []
 message_queue = Queue()
 
-Local_host = False
+Local_host = True
 
 
 def receive_thread(client_socket):
@@ -100,7 +100,6 @@ if __name__ == '__main__':
                 )
                 if client_reply is not None:
                     input_manager.output_message(client_reply, client_and_message[0])
-                    # client_and_message[0].send(client_reply.encode())
 
             except socket.error:
                 lost_clients.append(client_and_message[0])
