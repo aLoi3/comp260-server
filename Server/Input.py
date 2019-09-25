@@ -13,6 +13,12 @@ Logged_in = 3
 In_game = 4
 Character_creation = 5
 Character_selection = 6
+Class_selection = 7
+
+#  ToDo: Choose a class even if the character been created but the used got disconnected (DONE)
+#  ToDo: Let only one user to log in into one account (DONE)
+#  ToDo: Make only register unique username (WAS DONE)
+#  ToDo: Other players see sentences without spaces (DONE)
 
 
 class Input:
@@ -20,7 +26,7 @@ class Input:
         self.all_connected_clients = {}
         self.current_state = {}
         self.my_database = None
-        self.my_player = None
+        self.my_player = ''
         self.split_input = ''
         self.command = ''
         self.packet_ID = 'PyramidMUD'
@@ -114,7 +120,7 @@ class Input:
     def chat_message(self, client):
         # Chat messages
         message = self.logged_in_players.get(client) + ': '
-        message += ''.join(self.split_input)
+        message += ' '.join(self.split_input)
         self_message = 'Your words: ' + ' '.join(self.split_input)
         self.output_message(self_message, client)
         clients_in_room = self.check_room_for_players(client)
@@ -137,14 +143,11 @@ class Input:
                " go <direction> \n Directions: NORTH, SOUTH, EAST, WEST, UP, DOWN \n" \
                " exit - to exit the game \n" \
                " NOTE: If you are not using any of the commands, it will be a normal text and" \
-               " everyone in the room will hear it. \n" \
-
+               " everyone in the room will hear it. \n"
 
 # =================== MAIN - PLAYER INPUT =================== #
     def player_input(self, current_input, client, database):
-        self.current_client = client
         self.my_database = database
-
         self.split_input = current_input.split()
         self.command = self.split_input[0].lower()
         if self.current_state.get(client) is None:
@@ -165,7 +168,7 @@ class Input:
 
                 if message is not None:
                     self.output_message(message, client)
-            return
+                    return
 
         for client1 in list(self.logged_in_users):
             if client1 is client:
@@ -182,12 +185,15 @@ class Input:
                 elif self.current_state.get(client) == Character_selection:
                     message = self.choose_character(client)
 
+                elif self.current_state.get(client) == Class_selection:
+                    message = self.class_selection(client)
+
                 elif self.current_state.get(client) == Character_creation:
                     message = self.character_creation(client)
 
                 if message is not None:
                     self.output_message(message, client)
-            return
+                    return
 
         for client1 in list(self.clients_login_area):
             if client1 is client:
@@ -209,12 +215,8 @@ class Input:
 
                 if message is not None:
                     self.output_message(message, client)
-            return
-
-# =================== LOST IN ACTION =================== #
-    def change_name(self):
-        self.my_player.player_name = self.split_input[1]
-        return "You are no more a stranger, You named yourself " + self.split_input[1]
+                    return
+        #return
 
 # =================== EXIT DISPLAY =================== #
     def display_exits(self, room):
@@ -302,10 +304,58 @@ class Input:
         )
         if is_name_taken is True:
             message = " Player name is already taken \n"
+            self.output_message(message, client)
         else:
+            #  Add player to the database
             self.my_database.add_player(self.logged_in_users[client], "1-entrance", nickname)
             message = " " + nickname + " has been successfully created! \n"
             message += self.change_state(Logged_in, client)
+
+        return message
+
+    def class_selection(self, client):
+        if self.command == "back":
+            message = self.change_state(Logged_in, client)
+            return message
+
+        if self.command == "warrior":
+            self.my_database.set_stat_value("strength", self.my_player, 3)
+            self.my_database.set_stat_value("agility", self.my_player, 2)
+            self.my_database.set_stat_value("player_class", self.my_player, "warrior")
+
+            message = " You've chosen to be a warrior! \n"
+        elif self.command == "rogue":
+            self.my_database.set_stat_value("strength", self.my_player, 1)
+            self.my_database.set_stat_value("agility", self.my_player, 3)
+            self.my_database.set_stat_value("intelligence", self.my_player, 1)
+            self.my_database.set_stat_value("player_class", self.my_player, "rogue")
+
+            message = " You've chosen to be a rogue! \n"
+        elif self.command == "wizard":
+            self.my_database.set_stat_value("intelligence", self.my_player, 3)
+            self.my_database.set_stat_value("hearing", self.my_player, 1)
+            self.my_database.set_stat_value("observation", self.my_player, 1)
+            self.my_database.set_stat_value("player_class", self.my_player, "wizard")
+
+            message = " You've chosen to be a wizard! \n"
+        elif self.command == "scout":
+            self.my_database.set_stat_value("hearing", self.my_player, 2)
+            self.my_database.set_stat_value("observation", self.my_player, 2)
+            self.my_database.set_stat_value("agility", self.my_player, 1)
+            self.my_database.set_stat_value("player_class", self.my_player, "scout")
+
+            message = " You've chosen to be a scout! \n"
+        elif self.command == "deprived":
+            self.my_database.set_stat_value("player_class", self.my_player, "deprived")
+
+            message = " So you like hardcore, I see... \n"
+        else:
+            message = " You have chosen an unexisting class. Please try again \n"
+
+        self.logged_in_players[client] = self.my_player
+        self.logged_in_users.pop(client)
+        message += " Logged in as " + self.my_player + "\n"
+        message += self.start(client)
 
         return message
 
@@ -351,10 +401,18 @@ class Input:
         if len(owned_player) is not 0:
             for index, val in enumerate(owned_player):
                 if owned_player[index][0] == self.split_input[0]:
-                    self.logged_in_players[client] = owned_player[index][0]
-                    self.logged_in_users.pop(client)
-                    message = " Logged in as " + self.split_input[0] + "\n"
-                    message += self.start(client)
+
+                    self.my_player = self.split_input[0]
+                    user_class = self.my_database.get_value("player_class", "players", "player_name", self.my_player)
+
+                    if user_class is None:
+                        message = " You don't have a class. Choose from the following - WARRIOR, ROGUE, WIZARD, SCOUT, DEPRIVED \n"
+                        self.change_state(Class_selection, client)
+                    else:
+                        self.logged_in_players[client] = owned_player[index][0]
+                        self.logged_in_users.pop(client)
+                        message = " Logged in as " + self.split_input[0] + " \n"
+                        message += self.start(client)
         else:
             message = " You cannot play a game without having a character, silly \n"
 
@@ -425,12 +483,21 @@ class Input:
 
         if self.my_database.check_value("username", "users", "username", username, username) is True:
             if self.my_database.check_value("password", "users", "username", username, salted_password) is True:
-                self.logged_in_users[client] = username
-                self.clients_login_area.remove(client)
-                message = self.change_state(Logged_in, client)
-                return " Successfully logged in. \n" + message
-            else:
-                return " Password is incorrect. Try again \n"
+                if len(self.logged_in_users) is not 0:
+                    for user in list(self.logged_in_users):
+                        un = self.logged_in_users.get(user)
+                        if username != un:
+                            self.logged_in_users[client] = username
+                            self.clients_login_area.remove(client)
+                            message = self.change_state(Logged_in, client)
+                            return " Successfully logged in. \n" + message
+                        else:
+                            return " This account is already in use. Try again later. \n"
+                else:
+                    self.logged_in_users[client] = username
+                    self.clients_login_area.remove(client)
+                    message = self.change_state(Logged_in, client)
+                    return " Successfully logged in. \n" + message
         else:
             return " Username is incorrect. Try again \n"
 

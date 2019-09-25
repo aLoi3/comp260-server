@@ -57,6 +57,11 @@ class Database:
         self.cursor.execute(cmd, (room, player))
         self.database.commit()
 
+    def set_stat_value(self, stat, player, amount):
+        cmd = "UPDATE players SET " + stat + " =? WHERE player_name =?"
+        self.cursor.execute(cmd, (amount, player))
+        self.database.commit()
+
     def get_connection(self, direction, current_room):
         cmd = "SELECT " + direction + " FROM dungeon WHERE name =?"
         self.cursor.execute(cmd, (current_room, ))
@@ -69,7 +74,14 @@ class Database:
             id INTEGER PRIMARY KEY, 
             owner_username TEXT, 
             current_room TEXT, 
-            player_name TEXT 
+            player_name TEXT, 
+            player_class TEXT, 
+            experience INTEGER DEFAULT 0, 
+            strength INTEGER DEFAULT 0, 
+            agility INTEGER DEFAULT 0, 
+            intelligence INTEGER DEFAULT 0, 
+            hearing INTEGER DEFAULT 0, 
+            observation INTEGER DEFAULT 0 
             )'''
             self.cursor.execute(cmd)
             self.database.commit()
